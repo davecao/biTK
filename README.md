@@ -21,18 +21,18 @@ python -m 'biTK.ngs.apps.statsApp'
 
 Usage: statsApp.py [optioins] --fastq xx.fastq
 
-Options:
-  --version             show program's version number and exit
-  -h, --help            show this help message and exit
+Options: 
+  --version             show program's version number and exit 
+  -h, --help            show this help message and exit 
 
-  General options:
-    --action=ACTION     The input file in fastq format[REQUIRED].
-    --fastqfile=FASTQFILE
-                        The input file in fastq format[REQUIRED].
-    -o OUTFILE, --out=OUTFILE
-                        The output file after trimming sequences.
-    --reportfile=REPORTFILE
-                        The output path of html report file.
+  General options: 
+    --action=ACTION     The input file in fastq format[REQUIRED]. 
+    --fastqfile=FASTQFILE 
+                        The input file in fastq format[REQUIRED]. 
+    -o OUTFILE, --out=OUTFILE 
+                        The output file after trimming sequences. 
+    --reportfile=REPORTFILE 
+                        The output path of html report file. 
     --quality-score-fmt=QUALITY_SCORE_FMT
                         The format of quality scores used in fastq format.
     --log=LOGFILENAME   The name of a log file. If not specified, the name
