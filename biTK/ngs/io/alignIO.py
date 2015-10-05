@@ -7,18 +7,25 @@ import os
 import sys
 import re
 import pprint
-
+import biTK
 from biTK.ngs.sequence import Sequence, Alphabet,nucleic_alphabet, fastq_quality_alphabet
 from biTK import PY3K
 from biTK.ngs.io.pathtools import OPEN
-#from biTK.ngs.concurrent import ThreadPool
 from biTK.ngs.utils import grouper
+
+#from biTK.ngs.concurrent import ThreadPool
 
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 
 # joblib
 from joblib import Parallel, delayed, Memory
+
+# concurrent futures ProcessPoolExecutor
+import concurrent.futures
+from signal import signal, SIGPIPE, SIG_DFL
+# reset
+signal(SIGPIPE, SIG_DFL)
 
 if PY3K:
     #On Python 3, this will be a unicode StringIO
@@ -33,9 +40,7 @@ else:
         from StringIO import StringIO
 
 #__all__=["AlignIO", "MultiFastaIO", "ClustalWIO", "FastQIO", FastQIO_multithread"]
-__all__=["AlignIO"]
-
-memory=Memory(cachedir='/tmp/biTK')
+__all__=["AlignIO", "build_seq"]
 
 # decorator borrowed from Mozilla mxr
 def abstractmethod(method):
@@ -674,23 +679,23 @@ class FastQIO(IOBase, AlignIO):
 
 #@memory.cache
 #def build_seq(header, raw_seq, option_id, quality_seq):
-#    #print(fastq_lines)
-#    #header, raw_seq, option_id, quality_seq = fastq_lines
-#    try:
-#        # Create a bilab.ngs.sequence object
-#        title_fields = re.split("[\s|:]", header)
-#        sequence_id = title_fields[0]
-#
-#        s_obj = Sequence(raw_seq.strip(), quality_seq.strip(), 
-#                       alphabet=nucleic_alphabet, 
-#                       quality_alphabet = fastq_quality_alphabet,
-#                       name=sequence_id, 
-#                       optionID=option_id, 
-#                       quality_format='phred64',
-#                       description=header.strip())
-#    except ValueError:
-#       raise ValueError("Character not in alphabet: %s %s"%(nucleic_alphabet, raw_seq))
-#    return s_obj
+def build_seq(*args, **kwargs):
+    header, raw_seq, option_id, quality_seq = args[0][0]
+    print(args)
+    try:
+        # Create a bilab.ngs.sequence object
+        title_fields = re.split("[\s|:]", header)
+        sequence_id = title_fields[0]
+        s_obj = Sequence(raw_seq.strip(), quality_seq.strip(), 
+                       alphabet=nucleic_alphabet, 
+                       quality_alphabet = fastq_quality_alphabet,
+                       name=sequence_id, 
+                       optionID=option_id, 
+                       quality_format='phred64',
+                       description=header.strip())
+    except ValueError:
+       raise ValueError("Character not in alphabet: %s %s"%(nucleic_alphabet, raw_seq))
+    return s_obj
 
 class FastQIO_multithread(IOBase, AlignIO):
     """ Derived class 
@@ -763,7 +768,7 @@ class FastQIO_multithread(IOBase, AlignIO):
             else:
                 # has read method -- StringIO
                 handle = self.handle.getvalue().split('\n')
-        #seqs = []
+        seqs = []
         #append = seqs.append
         #tid = 1
         #for lineno, line in enumerate(handle):
@@ -775,15 +780,32 @@ class FastQIO_multithread(IOBase, AlignIO):
             #pool.apply_async(build_seq, args=(h, r, o, score,), callback=append)
 #            seq = build_seq(h, r, o, score)
 #            append(seq)
-        # using multiprocessing
-        seqs = pool.map_async(build_seq, grouper(4,handle), chunksize=chks).get()
+
+        # using multiprocessing: 8 threads 128 chks -- 570.75s
+        #seqs = pool.map_async(build_seq, grouper(4,handle), chunksize=chks).get()
 #        pool.close()
 #        pool.join()
-        # threading too slow
+        # Joblib: threading too slow
         #p = Parallel(n_jobs=nthreads, backend="threading")
         #func = delayed(build_seq, check_pickle=False)
-        #p = Parallel(n_jobs=nthreads, verbose=1, backend="multiprocessing")
-        #func = delayed(build_seq, check_pickle=False)
-        #seqs = p(func(header, raw_seq, option_id, quality_seq) for header, raw_seq, option_id, quality_seq in grouper(4, handle))
-
+#        p = Parallel(n_jobs=nthreads, verbose=True, backend="multiprocessing")
+#        func = delayed(biTK.ngs.io.build_seq, check_pickle=True)
+#        seqs = p(func((lines,), None) for lines in grouper(4, handle))
+        # concurrent futures ProcessExecutors: function must be pickable.
+#        futures=set()
+        with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:
+#            for lines in grouper(4, handle):
+#                future = executor.submit(build_seq, lines)
+#                futures.add(future)
+            futures = {executor.submit(biTK.ngs.io.build_seq, (lines,), None): lines for lines in grouper(4, handle)}
+            for future in concurrent.futures.as_completed(futures):
+                l = futures[future]
+                try:
+                    seqs.append(future.result())
+                except Exception as exc:
+                    print("ExceptionError: {} for {}".format(exc, l))
+                else:
+                    print("Generate {} objects".format(len(seqs)))
+#            # shutdown
+            executor.shutdown()
         return seqs

@@ -15,7 +15,7 @@ import io
 from distutils.sysconfig import get_config_var
 #from distutils.ccompiler import show_compilers
 # use setuptools
-from setuptools import setup
+from setuptools import setup, Extension
 
 from glob import glob
 pj = os.path.join
@@ -186,6 +186,6 @@ general_settings = cfg_to_args()
 # Key: resources has to be removed
 #general_settings.pop('resources')
 general_settings['zip-safe']=False
-print(general_settings)
+#print(general_settings)
 setup(**general_settings)
 #setup(**cfg_to_args())

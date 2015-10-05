@@ -163,6 +163,45 @@ class Sequence(object):
     def __hash__(self):
         return hash(self.__repr__())
 
+#    def __getstate__(self):
+#        odict = self.__dict__.copy() # copy the dict since we change it
+#        del odict['scores']
+#        del odict['p_errors']
+#        return odict
+#
+#    def __setstate__(self, dict):
+#        scores, p_errors = self.__chr2score(format=quality_format)
+#        dict['scores'] = scores
+#        dict['p_errors'] = p_errors
+#        self.__dict__.update(dict)
+#        self.scores = scores
+#        self.p_errors = p_errors
+
+    def __reduce_ex_(self):
+        # reconstructor for pickling
+        kwargs = {'alphabet':self.alphabet, 
+                'quality_alphabet':self.quality_alphabet,
+                'name':self.name,
+                'optionID':self.optionID,
+                'quality_format':self.quality_format,
+                'description':self.description,
+                'format':self.format}
+        args = (self.raw_seq.tostring(), self.quality_seq.tostring())
+        cls = self.__class__
+        return (cls, args, kwargs)
+
+    def __reduce__(self):
+        kwargs = {'alphabet':self.alphabet, 
+                'quality_alphabet':self.quality_alphabet,
+                'name':self.name,
+                'optionID':self.optionID,
+                'quality_format':self.quality_format,
+                'description':self.description,
+                'format':self.format}
+        args = (self.raw_seq.tostring(), self.quality_seq.tostring())
+        cls = self.__class__
+        return (cls, (args,), kwargs)
+
     def __trim__(self, pos, start=0):
         """
             Trim n elements from the lists
