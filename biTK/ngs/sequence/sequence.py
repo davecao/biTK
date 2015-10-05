@@ -163,19 +163,33 @@ class Sequence(object):
     def __hash__(self):
         return hash(self.__repr__())
 
-#    def __getstate__(self):
-#        odict = self.__dict__.copy() # copy the dict since we change it
-#        del odict['scores']
-#        del odict['p_errors']
-#        return odict
+    def __getstate__(self):
+        kwargs = {'alphabet':self.alphabet, 
+                'quality_alphabet':self.quality_alphabet,
+                'name':self.name,
+                'optionID':self.optionID,
+                'quality_format':self.quality_format,
+                'description':self.description,
+                'format':self.format}
+        args = (self.raw_seq, self.quality_seq, self.scores, self.p_errors, self.GC_content)
+        state = (args, kwargs)
+        return state
 #
-#    def __setstate__(self, dict):
+    def __setstate__(self, state):
 #        scores, p_errors = self.__chr2score(format=quality_format)
 #        dict['scores'] = scores
 #        dict['p_errors'] = p_errors
 #        self.__dict__.update(dict)
 #        self.scores = scores
 #        self.p_errors = p_errors
+        self.raw_seq, self.quality_seq,self.scores, self.p_errors, self.GC_content = state[0]
+        self.alphabet = state[1]['alphabet'] 
+        self.quality_alphabet = state[1]['quality_alphabet']
+        self.name = state[1]['name']
+        self.optionID = state[1]['optionID']
+        self.description = state[1]['description']
+        self.quality_format = state[1]['quality_format']
+        self.format = state[1]['format']
 
     def __reduce_ex_(self):
         # reconstructor for pickling
@@ -188,9 +202,10 @@ class Sequence(object):
                 'format':self.format}
         args = (self.raw_seq.tostring(), self.quality_seq.tostring())
         cls = self.__class__
-        return (cls, args, kwargs)
+        return (cls, (args,), kwargs)
 
     def __reduce__(self):
+        #helper for pickle
         kwargs = {'alphabet':self.alphabet, 
                 'quality_alphabet':self.quality_alphabet,
                 'name':self.name,
