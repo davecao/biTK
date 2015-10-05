@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="{% block html_lang %}en{% endblock %}">
+<head>
+{% from "macros.html" import debugmin %}
+{% from "macros.html" import two_column_layout %}
+{% block head %}
+    <title>{% block title %}{{ title }}{% endblock %}</title>
+    {% block meta %}
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="{% block meta_description %}{% endblock %}">
+        <meta name="author" content="{% block meta_author %}Bioinformation Engineering Laboratory{% endblock %}">
+    {% endblock %}
+
+    {% block css_bootstrap %}
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+    {% endblock %}
+    {% block css_site %}
+    {% endblock %}
+    {% block css_extra %}
+    <style type="text/css">
+
+        .bs-docs-sidenav > li > a {
+            border: 1px solid #E5E5E5;
+            /*display: block;*/
+            /*margin: 0 0 -1px;*/
+            padding: 8px 14px;
+        }
+        
+        .bs-docs-sidenav > li > a {
+            border: 1px solid #E5E5E5;
+            /*display: block;*/
+            /*margin: 0 0 -1px;*/
+            padding: 8px 14px;
+        }
+        
+        .bs-docs-sidenav > li:first-child > a {
+            border-radius: 6px 6px 0 0;
+        }
+        
+        .bs-docs-sidenav > li:last-child > a {
+            border-radius: 0 0 6px 6px;
+        }
+        
+        .bs-docs-sidenav > .active > a {
+            border: 0 none;
+            box-shadow: 1px 0 0 rgba(0, 0, 0, 0.1) inset, -1px 0 0 rgba(0, 0, 0, 0.1) inset;
+            padding: 9px 15px;
+            position: relative;
+            text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+            z-index: 2;
+        }
+        .sans-serif-font {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .serif-font {
+            font-family: "Times New Roman", Times, serif;
+        }
+        .monospace-font {
+            font-family: "Courier New", Courier, monospace;
+        }
+    </style>
+    {% endblock %}
+
+    {% block js_html5_shim %}
+        <!--[if lt IE 9]>
+            <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+    {% endblock %}
+    {% block js_head %}
+    {% endblock %}
+{% endblock %}
+</head>
+{# TODO: write a class builder macro #}
+<body class="{% block body_classes %}{% endblock %}" id="{% block body_id %}{% endblock %}"{% block bodytag_extra %}{% endblock %}>
+{% block body %}
+
+    {% block navbar_wrapper %}
+    <div class="navbar navbar-default navbar-fixed-top" style="filter: alpha(opacity=80);opacity: 0.8;z-index: 10000;" role="navigation">
+       <div class="container">
+        <div class="navbar-header">
+           <a class="navbar-brand" href="#">Statistic Report of Fastq Quality by {{ package }}</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li><a class="nav navbar-nav navbar-right">{{ rptTime }}</a></li>
+            </ul>
+        </div>
+       </div>
+    </div>
+    {% endblock %}
+
+    {% block pre_container %}
+    {% endblock %}
+    {# two_column_layout(sidebar_content,body_content,fluid=True) #}
+    <div class="container" style="padding-top:60px;padding-bottom:42px;">
+        <div class="row row-offcanvas row-offcanvas-left">
+            <div class="col-lg-4 col-12 col-sm-4  ">
+                <div class="panel-group affix">
+                    <!-- panel 1 -->
+                    <div class="panel panel-default">
+                        <!-- <div class="panel-heading">Statistics</div> -->
+                        <div class="panel-body">
+                            <div class="sidebar-nav" role="complementary">
+                                <ul class="nav nav-list bs-docs-sidenav">
+                                    {{ sidebar_content }}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- panel 2 -->
+                    <div class="panel panel-default">
+                        <div class="panel-heading">File info</div>
+                        <div class="panel-body">
+                            <table class="table table-bordered table-striped table-condensed">
+                                {% for row in infoBox %}
+                                <tr>
+                                    {% set rowloop = loop %}
+                                    {% for cell in row %}
+                                        {%- if loop.index == 1 %}
+                                            <td id="info-cell-{{ rowloop.index }}-{{ loop.index }}" class="sans-serif-font">
+                                        {% else %}
+                                            <td id="cell-{{ rowloop.index }}-{{ loop.index }}">
+                                        {% endif%}
+                                        {%- if cell is Float %}
+                                            {{ "{:.2f}".format(cell) }}
+                                        {% else %}
+                                            {{ cell }}
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                </div><!-- end of panel group -->
+            </div>
+            <div class="col-lg-8 col-12 col-sm-8  main">
+                {{ body_content }}
+            </div>
+        </div>
+    </div>
+    {% block post_container %}
+    {% endblock %}
+
+    {% block js_jquery %}
+        {# Grab Google CDN's jQuery, with a protocol relative URL; fall back to local if offline #}
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    {% endblock %}
+    {% block js_bootstrap %}
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap{{ debugmin() }}.js"></script>
+    {% endblock %}
+    {% block js_footer %}
+        {# Add your javascript here #}
+    {% endblock %}
+
+{% endblock %}
+</body>
+</html>

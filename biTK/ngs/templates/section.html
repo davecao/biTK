@@ -1,0 +1,41 @@
+
+<section id="{{ id }}" style="padding-top: 42px;">
+<h4 class="sub-header" name="{{ name }}">{{ name }}</h4>
+<div>
+  {{ description }}
+</div>
+{%- if hasImg %}
+<a href="{{content_url}}"><img src="{{thumnail_url}}" class="center-block" width="504" height="336"/></a>
+{%- endif %}
+{%- if hasTable %}
+<table class="table table-bordered table-striped table-condensed table-hover">
+  <tr>
+  {% for colName in tableColName %}
+    <th>{{ colName }} </th>
+  {% endfor %}
+  </tr>
+  {% for row in table %}
+  <tr>
+  {% set rowloop = loop %}
+  {%- if loop.index >= 10 %}
+    {% break %}
+  {% endif %}
+  {% for cell in row %}
+    {%- if loop.index == 1 %}
+    <td id="cell-{{ rowloop.index }}-{{ loop.index }}" class="monospace-font">
+    {% else %}
+    <td id="cell-{{ rowloop.index }}-{{ loop.index }}">
+    {% endif%}
+    {%- if cell is Float %}
+      {{ "{:.2f}".format(cell) }}
+    {% else %}
+      {{ cell }}
+    {% endif %}
+    </td>
+  {% endfor %}
+  </tr>
+  {% endfor %}
+</table>  
+{%- endif %}
+</section>
+
