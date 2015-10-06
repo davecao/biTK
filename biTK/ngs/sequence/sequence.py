@@ -201,7 +201,7 @@ class Sequence(object):
 #        else:
 #            state = {}
         try:
-            state = var(self).copy()
+            state = vars(self).copy()
         except TypeError:
             state = {}
 

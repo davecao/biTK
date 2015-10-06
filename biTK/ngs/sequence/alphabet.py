@@ -360,9 +360,9 @@ class Alphabet(object) :
 
     def __getstate__(self):
         # subclass do not must be slots
-        if hasattr(self, '__dict__'):
-            state = self.__dict__.copy()
-        else:
+        try:
+            state = vars(self).copy()
+        except TypeError:
             state = {}
         for slot in self._get_slots():
             try:
@@ -542,9 +542,9 @@ class Seq(str):
 
     def __getstate__(self):
         # subclass do not must be slots
-        if hasattr(self, '__dict__'):
-            state = self.__dict__.copy()
-        else:
+        try:
+            state = vars(self).copy()
+        except TypeError:
             state = {}
         for slot in self._get_slots():
             try:

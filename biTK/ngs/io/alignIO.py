@@ -696,7 +696,7 @@ def sequenceBuilder(header, raw_seq, option_id, quality_seq, **kwargs):
                        alphabet = alphabet, 
                        name = sequence_id, 
                        optionID = option_id, 
-                       quality_format = quality_score_fmt,
+                       qs_fmt = quality_score_fmt,
                        description = header.strip())
 
     except ValueError:
@@ -801,9 +801,10 @@ class FastQIO_multithread(IOBase, AlignIO):
                 'quality_score_fmt' : quality_score_fmt
         }
 
-        p = Parallel(n_jobs=nthreads, verbose=True, backend="multiprocessing")
+        p = Parallel(n_jobs=nthreads, verbose=100, backend="multiprocessing")
         func = delayed(biTK.ngs.io.sequenceBuilder, check_pickle=True)
-        seqs = p(func(header, raw_seq, option_id, quality_seq, kwds) for header, raw_seq, option_id, quality_seq in grouper(4, handle))
+        # when adding kwds to func, it will not work, __new__() wrong number of arguments
+        seqs = p(func(header, raw_seq, option_id, quality_seq, **kwds) for header, raw_seq, option_id, quality_seq in grouper(4, handle))
         # concurrent futures ProcessExecutors: function must be pickable.
 #        futures={}
 #        with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:
