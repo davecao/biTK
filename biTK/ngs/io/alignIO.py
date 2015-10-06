@@ -7,8 +7,10 @@ import os
 import sys
 import re
 import pprint
+import time
 import biTK
-from biTK.ngs.sequence import Sequence, Alphabet,nucleic_alphabet, fastq_quality_alphabet
+from biTK.ngs.sequence import Sequence, Alphabet,nucleic_alphabet,\
+                            PHRED_ALPHABET
 from biTK import PY3K
 from biTK.ngs.io.pathtools import OPEN
 from biTK.ngs.utils import grouper
@@ -40,7 +42,7 @@ else:
         from StringIO import StringIO
 
 #__all__=["AlignIO", "MultiFastaIO", "ClustalWIO", "FastQIO", FastQIO_multithread"]
-__all__=["AlignIO", "build_seq"]
+__all__=["AlignIO", "sequenceBuilder"]
 
 # decorator borrowed from Mozilla mxr
 def abstractmethod(method):
@@ -591,8 +593,7 @@ class FastQIO(IOBase, AlignIO):
         super(FastQIO, self).__init__(handle, *args, **kwargs)
 
 
-    def parse(self, alphabet=nucleic_alphabet, quality_score_fmt=64, 
-                    quality_alphabet=fastq_quality_alphabet):
+    def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred33'):
         """ Impletementation of the abstract method defined in IOBase
         Args:
             handle   -- handle to the file, or the filename as a string
@@ -603,7 +604,7 @@ class FastQIO(IOBase, AlignIO):
         """
         handle = self.handle
         alphabet = Alphabet(alphabet) 
-        q_alphabet = Alphabet(quality_alphabet)
+        q_alphabet = PHRED_ALPHABET[quality_score_fmt]
 
         def build_seq(raw_seq, quality_seq, header, option_id):
             try:
@@ -678,24 +679,32 @@ class FastQIO(IOBase, AlignIO):
         return seqs
 
 #@memory.cache
-#def build_seq(header, raw_seq, option_id, quality_seq):
-def build_seq(*args, **kwargs):
-    header, raw_seq, option_id, quality_seq = args[0][0]
-    print(args)
+def sequenceBuilder(header, raw_seq, option_id, quality_seq, **kwargs):
+#def sequenceBuilder(header, raw_seq, option_id, quality_seq):
+#def build_seq(*args, **kwargs):
+#    header, raw_seq, option_id, quality_seq = args[0]
+    #print(args)
     try:
         # Create a bilab.ngs.sequence object
         title_fields = re.split("[\s|:]", header)
         sequence_id = title_fields[0]
+
+        alphabet = kwargs.get('alphabet', nucleic_alphabet)
+        quality_score_fmt = kwargs.get('quality_score_fmt', 'phred33')
+
         s_obj = Sequence(raw_seq.strip(), quality_seq.strip(), 
-                       alphabet=nucleic_alphabet, 
-                       quality_alphabet = fastq_quality_alphabet,
-                       name=sequence_id, 
-                       optionID=option_id, 
-                       quality_format='phred64',
-                       description=header.strip())
+                       alphabet = alphabet, 
+                       name = sequence_id, 
+                       optionID = option_id, 
+                       quality_format = quality_score_fmt,
+                       description = header.strip())
+
     except ValueError:
        raise ValueError("Character not in alphabet: %s %s"%(nucleic_alphabet, raw_seq))
     return s_obj
+
+def callback(f):
+    print('callback {}'.format(f.result()))
 
 class FastQIO_multithread(IOBase, AlignIO):
     """ Derived class 
@@ -715,8 +724,7 @@ class FastQIO_multithread(IOBase, AlignIO):
     def __init__(self, handle, *args, **kwargs):
         super(FastQIO_multithread, self).__init__(handle, *args, **kwargs)
 
-    def parse(self, alphabet=nucleic_alphabet, quality_score_fmt=64, 
-                    quality_alphabet=fastq_quality_alphabet, 
+    def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred33', 
                     nthreads=None, chunksize=32):
         """ Impletementation of the abstract method defined in IOBase
         Args:
@@ -728,37 +736,38 @@ class FastQIO_multithread(IOBase, AlignIO):
         """
         handle = self.handle
         alphabet = Alphabet(alphabet) 
-        q_alphabet = Alphabet(quality_alphabet)
+
         # ThreadPool: use the number of cores available 
         if nthreads is None:
             nthreads = cpu_count()*2
-            pool = ThreadPool(cpu_count()*2)
+#            pool = ThreadPool(cpu_count()*2)
         else:
-            pool = ThreadPool(nthreads)
+            nthreads = nthreads
+#            pool = ThreadPool(nthreads)
 
         if chunksize is not None:
             chks = chunksize
         else:
             chks = 32
 #        def build_seq(header, raw_seq, option_id, quality_seq):
-        def build_seq(fastq_lines):
-            try:
-                header, raw_seq, option_id, quality_seq = fastq_lines
-                # Create a bilab.ngs.sequence object
-                title_fields = re.split("[\s|:]", header)
-                sequence_id = title_fields[0]
-                
-                s_obj = Sequence(raw_seq.strip(), quality_seq.strip(), 
-                                alphabet=alphabet, 
-                                quality_alphabet = q_alphabet,
-                                name=sequence_id, 
-                                optionID=option_id, 
-                                quality_format=quality_score_fmt,
-                                description=header.strip())
-            except ValueError:
-                raise ValueError("Character not in alphabet: %s %s"%(alphabet, raw_seq))
-
-            return s_obj
+#        def build_seq(fastq_lines):
+#            try:
+#                header, raw_seq, option_id, quality_seq = fastq_lines
+#                # Create a bilab.ngs.sequence object
+#                title_fields = re.split("[\s|:]", header)
+#                sequence_id = title_fields[0]
+#                
+#                s_obj = Sequence(raw_seq.strip(), quality_seq.strip(), 
+#                                alphabet=alphabet, 
+#                                quality_alphabet = q_alphabet,
+#                                name=sequence_id, 
+#                                optionID=option_id, 
+#                                quality_format=quality_score_fmt,
+#                                description=header.strip())
+#            except ValueError:
+#                raise ValueError("Character not in alphabet: %s %s"%(alphabet, raw_seq))
+#
+#            return s_obj
 
         # loop file handle
         if not isinstance(handle, file):
@@ -768,7 +777,7 @@ class FastQIO_multithread(IOBase, AlignIO):
             else:
                 # has read method -- StringIO
                 handle = self.handle.getvalue().split('\n')
-        seqs = []
+        #seqs = []
         #append = seqs.append
         #tid = 1
         #for lineno, line in enumerate(handle):
@@ -788,24 +797,32 @@ class FastQIO_multithread(IOBase, AlignIO):
         # Joblib: threading too slow
         #p = Parallel(n_jobs=nthreads, backend="threading")
         #func = delayed(build_seq, check_pickle=False)
-#        p = Parallel(n_jobs=nthreads, verbose=True, backend="multiprocessing")
-#        func = delayed(biTK.ngs.io.build_seq, check_pickle=True)
-#        seqs = p(func((lines,), None) for lines in grouper(4, handle))
+        kwds = {'alphabet' : alphabet, 
+                'quality_score_fmt' : quality_score_fmt
+        }
+
+        p = Parallel(n_jobs=nthreads, verbose=True, backend="multiprocessing")
+        func = delayed(biTK.ngs.io.sequenceBuilder, check_pickle=True)
+        seqs = p(func(header, raw_seq, option_id, quality_seq, kwds) for header, raw_seq, option_id, quality_seq in grouper(4, handle))
         # concurrent futures ProcessExecutors: function must be pickable.
-#        futures=set()
-        with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:
+#        futures={}
+#        with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:
 #            for lines in grouper(4, handle):
-#                future = executor.submit(build_seq, lines)
-#                futures.add(future)
-            futures = {executor.submit(biTK.ngs.io.build_seq, (lines,), None): lines for lines in grouper(4, handle)}
-            for future in concurrent.futures.as_completed(futures):
-                l = futures[future]
-                try:
-                    seqs.append(future.result())
-                except Exception as exc:
-                    print("ExceptionError: {} for {}".format(exc, l))
-                else:
-                    print("Generate {} objects".format(len(seqs)))
-#            # shutdown
-            executor.shutdown()
+#                header, raw_seq, option_id, quality_seq = lines
+#                future = executor.submit(biTK.ngs.io.build_seq, header, raw_seq, option_id#, quality_seq)
+#                future.add_done_callback(biTK.ngs.io.callback)
+#                #futures[future] = lines
+#                time.sleep(0.01)
+#                futures[future] = lines
+#            #futures = {executor.submit(biTK.ngs.io.build_seq, lines): lines for lines in #grouper(4, handle)}
+#            for future in concurrent.futures.as_completed(futures):
+#                l = futures[future]
+#                try:
+#                    seqs.append(future.result())
+#                except Exception as exc:
+#                    print("ExceptionError: {} for {}".format(exc, l))
+#                else:
+#                    print("Generate {} objects".format(len(seqs)))
+##            # shutdown
+#            executor.shutdown()
         return seqs

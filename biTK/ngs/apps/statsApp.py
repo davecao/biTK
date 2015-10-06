@@ -13,7 +13,7 @@ from collections import Counter
 from operator import add
 #from functools import wraps
 
-from biTK.ngs.sequence import nucleic_alphabet, fastq_quality_alphabet
+from biTK.ngs.sequence import nucleic_alphabet
 from biTK.ngs.io import AlignIO
 from biTK.ngs.statistics import mean, median, quantile
 from biTK.ngs.utils import Console, combinations_with_full, \
@@ -74,8 +74,7 @@ def load_data(filename, minLen,
                 fastq_type = 'single',
                 compressed=None, 
                 alphabet=nucleic_alphabet, 
-                quality_score_fmt='phred64',
-                quality_alphabet=fastq_quality_alphabet,
+                quality_score_fmt='phred33',
                 nthreads = None,
                 chks = None,
                 verbose=False):
@@ -86,7 +85,6 @@ def load_data(filename, minLen,
         nthreads = cpu_count()
     parser = AlignIO(filename, ConcreteIO=io_plug, compressed=compressed)
     seqslist_full = parser.parse(alphabet=alphabet, 
-                                 quality_alphabet=quality_alphabet,
                                  quality_score_fmt=quality_score_fmt,
                                  nthreads=nthreads, chunksize=chks)
     seqslist = []
@@ -925,7 +923,7 @@ def parse_cmd(argv):
     )
     inout_opts.add_option(
         "--quality-score-fmt", dest="quality_score_fmt", 
-        type='choice', choices=['phred64', 'phred33'], default='phred64',
+        type='choice', choices=['phred64', 'phred33'], default='phred33',
         help="The format of quality scores used in fastq format. 'phred64' or 'phred33'"
     )
     inout_opts.add_option(
@@ -1035,7 +1033,7 @@ def parse_cmd(argv):
         print ("Error: no arguments found")
         parser.print_help()
         sys.exit(1)
-    print(options.fastq_type)
+    
     if options.fastq_type not in ['single', 'paired']:
         print ("Error: unknown specified the type of input fastq file. 'single' or 'paired'")
         parser.print_help()
@@ -1122,7 +1120,6 @@ def main(argv):
                         fastq_type = fastq_type,
                         alphabet=nucleic_alphabet,
                         quality_score_fmt=quality_score_fmt,
-                        quality_alphabet=fastq_quality_alphabet,
                         compressed=compressed_fmt, 
                         nthreads = mcpu,
                         chks = chks, 
@@ -1133,7 +1130,6 @@ def main(argv):
                         fastq_type = fastq_type,
                         alphabet=nucleic_alphabet,
                         quality_score_fmt=quality_score_fmt,
-                        quality_alphabet=fastq_quality_alphabet,
                         compressed=compressed_fmt, 
                         nthreads = mcpu,
                         chks = chks, 

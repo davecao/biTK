@@ -8,7 +8,8 @@ import math
 import copy
 import types
 
-from biTK.ngs.sequence import Alphabet, generic_alphabet, protein_alphabet, nucleic_alphabet, fastq_quality_alphabet, Seq
+from biTK.ngs.sequence import nucleic_alphabet, phred33_alphabet, \
+                            phred64_alphabet, Seq
 from biTK.ngs.SubMatrice import SubstitutionMatrix as SUBMat
 from biTK.ngs.sequence.align import Alignment 
 from biTK import PY3K
@@ -26,18 +27,30 @@ else:
     text_type = unicode
     binary_type = str
 
-__all__ = ['Sequence']
+__all__ = ['Sequence', 'SequencePickleHelper', 'PHRED_ALPHABET']
+
+PHRED_ALPHABET = {
+    'phred33': phred33_alphabet,
+    'phred64': phred64_alphabet
+}
+
+def SequencePickleHelper(cls, *args, **kwargs):
+    """ Pickle helper """
+    try:
+        return cls.__new__(cls, args, **kwargs)
+    except ValueError:
+        print("args: should be {} but {} is given.".format(2, len(args)))
 
 class Sequence(object):
     """ 
     Sequence class for single protein sequence inherited from str class
 
     usage:
-    >>> import bilab
-    >>> from bilab.ngs.sequence import Alphabet, generic_alphabet, protein_alphabet, nucleic_alphabet
-    >>> pr=bilab.ngs.sequence.Alphabet('ACSDGF')
+    >>> import biTK
+    >>> from biTK.ngs.sequence import Alphabet, generic_alphabet, protein_alphabet, nucleic_alphabet
+    >>> pr=biTK.ngs.sequence.Alphabet('ACSDGF')
     >>> pr='ACSDGF'
-    >>> s1=bilab.sequence.Sequence(pr,name='test',alphabet=protein_alphabet)
+    >>> s1=biTK.ngs.sequence.Sequence(pr,name='test',alphabet=protein_alphabet)
     >>> print(repr(s1))
     >test
     ACSDGF
@@ -47,12 +60,11 @@ class Sequence(object):
                 'raw_seq', 'quality_seq','scores', 'p_errors']
 
     def __init__(self, raw_seq, quality_seq, 
-                alphabet = generic_alphabet, 
-                quality_alphabet = fastq_quality_alphabet,
+                alphabet = nucleic_alphabet, 
                 name = None,  
                 optionID = None,
                 description = None,
-                quality_format = 'phred64',
+                qs_fmt = 'phred33',
                 format = "sanger"):
         """
         Store a sequence in fastq format
@@ -63,25 +75,35 @@ class Sequence(object):
 
         Kwargs: 
             alphabet (obj) : an object of Alphabet, default is generic_alphabet.
-            quality_alphabet (obj) : default is fastq_quality_alphabet.
             name (str) : id/name of the sequence, default is None.  
             optionID (str) : optional Id of the sequence, default is None.
             description (str) : description of the sequence, default is None
-            quality_format (str) : 'phred64' or 'phred33'.
+            qs_fmt (str) : 'phred64' or 'phred33'.
             format (str) : 'sanger'- currently only used as label.
         """
         super(Sequence, self).__init__()
+
+        #quality_alphabet (obj) : default is phred33_fmt.
+        quality_alphabet = PHRED_ALPHABET[qs_fmt]
+
         self.alphabet = alphabet
+        self.quality_format = qs_fmt
         self.quality_alphabet = quality_alphabet
-        self.quality_format = quality_format
+
         self.raw_seq = Seq(raw_seq, alphabet=alphabet)
         self.quality_seq = Seq(quality_seq, alphabet=quality_alphabet)
+
         self.name = name
         self.description = description
         self.optionID = optionID
         self.format = format
-        self.scores, self.p_errors = self.__chr2score(format=quality_format)
+        self.scores, self.p_errors = self.__chr2score(format=qs_fmt)
         self.GC_content = self.__get_GC_content()
+        # Check missing values
+        if len(raw_seq) != len(quality_seq):
+            print("Missing values:")
+            print("The length of reads is not equal to that of quality scores")
+            sys.exit(1)
 
     @property
     def __deepcopy_keyattrs(self):
@@ -108,7 +130,7 @@ class Sequence(object):
         #    setattr(result, k, copy.deepcopy(v, memo))
         return result
 
-    def __chr2score(self, format='phred64'):
+    def __chr2score(self, format='phred33'):
         """
             Convert chr to score
         Kwargs:
@@ -126,9 +148,13 @@ class Sequence(object):
             print("Error: unknown quality score format, phred64|phred33")
             sys.exit(1)
 
-        for i in self.quality_seq.ords():
-            scores.append(i)
-            p_errors.append(math.pow(10, (i-offset)*cons))
+        for score in self.quality_seq.ords():
+            if score == 255:
+                print("Specified score format seem not to be {}".format(format))
+                print("{}\n{}".format(self.raw_seq, self.quality_seq))
+                sys.exit(1)
+            scores.append(score)
+            p_errors.append(math.pow(10, score*cons))
         return (scores, p_errors)
 
     def __get_GC_content(self):
@@ -163,33 +189,33 @@ class Sequence(object):
     def __hash__(self):
         return hash(self.__repr__())
 
+    def _get_slots(self):
+        all_slots = (getattr(cls, '__slots__', ()) for cls in self.__class__.__mro__)
+        r = set(slot for slots in all_slots for slot in slots)
+        return r
+
     def __getstate__(self):
-        kwargs = {'alphabet':self.alphabet, 
-                'quality_alphabet':self.quality_alphabet,
-                'name':self.name,
-                'optionID':self.optionID,
-                'quality_format':self.quality_format,
-                'description':self.description,
-                'format':self.format}
-        args = (self.raw_seq, self.quality_seq, self.scores, self.p_errors, self.GC_content)
-        state = (args, kwargs)
+        # subclass do not must be slots
+#        if hasattr(self, '__dict__'):
+#            state = self.__dict__.copy()
+#        else:
+#            state = {}
+        try:
+            state = var(self).copy()
+        except TypeError:
+            state = {}
+
+        for slot in self._get_slots():
+            try:
+                val = getattr(self, slot)
+                state[slot] = val
+            except AttributeError:
+                pass
         return state
-#
+
     def __setstate__(self, state):
-#        scores, p_errors = self.__chr2score(format=quality_format)
-#        dict['scores'] = scores
-#        dict['p_errors'] = p_errors
-#        self.__dict__.update(dict)
-#        self.scores = scores
-#        self.p_errors = p_errors
-        self.raw_seq, self.quality_seq,self.scores, self.p_errors, self.GC_content = state[0]
-        self.alphabet = state[1]['alphabet'] 
-        self.quality_alphabet = state[1]['quality_alphabet']
-        self.name = state[1]['name']
-        self.optionID = state[1]['optionID']
-        self.description = state[1]['description']
-        self.quality_format = state[1]['quality_format']
-        self.format = state[1]['format']
+        for k in state:
+            setattr(self, k , state[k])
 
     def __reduce_ex_(self):
         # reconstructor for pickling
@@ -202,7 +228,7 @@ class Sequence(object):
                 'format':self.format}
         args = (self.raw_seq.tostring(), self.quality_seq.tostring())
         cls = self.__class__
-        return (cls, (args,), kwargs)
+        return (cls, (args[0], args[1]))
 
     def __reduce__(self):
         #helper for pickle
@@ -215,7 +241,10 @@ class Sequence(object):
                 'format':self.format}
         args = (self.raw_seq.tostring(), self.quality_seq.tostring())
         cls = self.__class__
-        return (cls, (args,), kwargs)
+        # without kwargs is OK
+        return (cls, (args[0], args[1]))
+        #return SequencePickleHelper, (cls, args, kwargs), None
+        #return (SequencePickleHelper, (cls, args, kwargs))
 
     def __trim__(self, pos, start=0):
         """

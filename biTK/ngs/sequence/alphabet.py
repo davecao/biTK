@@ -182,7 +182,8 @@ __all__ = [
     'unambiguous_rna_alphabet', 
     'unambiguous_protein_alphabet',
     'generic_alphabet',
-    'fastq_quality_alphabet',
+    'phred33_alphabet',
+    'phred64_alphabet',
     'Seq'
     ]
 
@@ -352,6 +353,29 @@ class Alphabet(object) :
     def __hash__(self):
         return hash( tuple(self._ord_table))
 
+    def _get_slots(self):
+        all_slots = (getattr(cls, '__slots__', ()) for cls in self.__class__.__mro__)
+        r = set(slot for slots in all_slots for slot in slots)
+        return r
+
+    def __getstate__(self):
+        # subclass do not must be slots
+        if hasattr(self, '__dict__'):
+            state = self.__dict__.copy()
+        else:
+            state = {}
+        for slot in self._get_slots():
+            try:
+                val = getattr(self, slot)
+                state[slot] = val
+            except AttributeError:
+                pass
+        return state
+
+    def __setstate__(self, state):
+        for k in state:
+            setattr(self, k, state[k])
+
 #    @staticmethod 
 #    def which(seqs, alphabets=None) :
 #        """ 
@@ -419,16 +443,18 @@ unambiguous_protein_alphabet =  Alphabet("ACDEFGHIKLMNPQRSTVWY",
 _complement_table = maketrans("ACGTRYSWKMBDHVN-acgtUuryswkmbdhvnXx?.~",
                               "TGCAYRSWMKVHDBN-tgcaAayrswmkvhdbnXx?.~")
 
-fastq_quality_alphabet = Alphabet("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~", None)
+phred33_alphabet = Alphabet("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~", None)
+
+phred64_alphabet = Alphabet("@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~", None)
 
 class Seq(str):
     """ 
         subclass of str
     """
-    def __new__(cls, obj, alphabet = generic_alphabet):
+    def __new__(cls, obj, alphabet = nucleic_alphabet):
         self = str.__new__(cls, obj)
         if alphabet is None: 
-            alphabet = generic_alphabet
+            alphabet = nucleic_alphabet
         if  not isinstance(alphabet, Alphabet): 
             alphabet = Alphabet(alphabet)
         if not alphabet.alphabetic(self) :
@@ -507,7 +533,30 @@ class Seq(str):
 
     def __repr__(self):
         #return self.__str__();
-        return ">{0}\n{1}".format(self.name, self)
+        return "{}".format(self)
+
+    def _get_slots(self):
+        all_slots = (getattr(cls, '__slots__', ()) for cls in self.__class__.__mro__)
+        r = set(slot for slots in all_slots for slot in slots)
+        return r
+
+    def __getstate__(self):
+        # subclass do not must be slots
+        if hasattr(self, '__dict__'):
+            state = self.__dict__.copy()
+        else:
+            state = {}
+        for slot in self._get_slots():
+            try:
+                val = getattr(self, slot)
+                state[slot] = val
+            except AttributeError:
+                pass
+        return state
+
+    def __setstate__(self, state):
+        for k in state:
+            setattr(self, k, state[k])
 
     def tostring(self) :
         """ Converts Seq to a raw string. 
