@@ -87,7 +87,8 @@ def load_data(filename, minLen,
     parser = AlignIO(filename, ConcreteIO=io_plug, compressed=compressed)
     seqslist_full = parser.parse(alphabet=alphabet, 
                                  quality_score_fmt=quality_score_fmt,
-                                 nthreads=nthreads, chunksize=chks)
+                                 nthreads=nthreads, chunksize=chks, 
+                                 verbose=verbose)
     seqslist = []
     removed_list = []
     s_ap = seqslist.append
@@ -1017,8 +1018,8 @@ def parse_cmd(argv):
         help="The number of threads, default is the number of cores."
     )
     multihtreads_opts.add_option(
-        "--chks", dest="chks", type='int', default=128,
-        help="The chunk size for spliting loop, default is 128."
+        "--chks", dest="chks", type='int', default=0,
+        help="The chunk size for parallel works, default is 0. The size will be determined automatically. "
     )
 
     parser.add_option_group(general_opts)
@@ -1114,8 +1115,7 @@ def main(argv):
         io_plug = 'FastQIO'
     else:
         io_plug = 'FastQIO_multithread'
-    io_plug = 'FastQIO_multithread'
-#    ThPool = ThreadPool(opt.mcpu)
+
     # Logger settings
     logfile = opt.logfilename
     log_label = inputfilename

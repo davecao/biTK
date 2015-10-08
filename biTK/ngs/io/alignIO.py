@@ -608,7 +608,7 @@ class FastQIO(IOBase, AlignIO):
         super(FastQIO, self).__init__(handle, *args, **kwargs)
 
 
-    def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred33'):
+    def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred33',**kwargs):
         """ Impletementation of the abstract method defined in IOBase
         Args:
             handle   -- handle to the file, or the filename as a string
@@ -693,22 +693,8 @@ class FastQIO(IOBase, AlignIO):
         seqs.append(s)
         return seqs
 
-def BuilderWrapper(func):
-    """ Wrapper of sequenceBuilder """
-    @wraps(func)
-    def wrap_func(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrap_func
-
-
-#def sequenceBuilder(header, raw_seq, option_id, quality_seq, 
-#                    alphabet, quality_score_fmt):
-#def sequenceBuilder(header, raw_seq, option_id, quality_seq):
-#def sequenceBuilder(*args, **kwargs):
-
-#@BuilderWrapper
 def sequenceBuilder(header, raw_seq, option_id, quality_seq, alphabet,
-                    quality_score_fmt, **kwargs):
+                    quality_score_fmt):
     try:
         # Create a bilab.ngs.sequence object
         title_fields = re.split("[\s|:]", header)
@@ -758,7 +744,7 @@ class FastQIO_multithread(IOBase, AlignIO):
         super(FastQIO_multithread, self).__init__(handle, *args, **kwargs)
 
     def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred64', 
-                    nthreads=None, chunksize='auto'):
+                    nthreads=None, chunksize=0, verbose=0):
         """ Impletementation of the abstract method defined in IOBase
         Args:
             handle   -- handle to the file, or the filename as a string
@@ -777,14 +763,10 @@ class FastQIO_multithread(IOBase, AlignIO):
         else:
             nthreads = nthreads
 #            pool = ThreadPool(nthreads)
-        if isinstance(chunksize, str) and chunksize != 'auto':
-            print("Warn: unknown setting for chunksize, use default value 'auto'.")
-            chunksize = 'auto'
-        elif chunksize is None:
+        if chunksize is None:
             chunksize = 'auto'
         elif isinstance(chunksize, int):
             if chunksize <= 0:
-                print("Warn: using 'auto' for chunksize set to <=0.")
                 chunksize = 'auto'
 
         # loop file handle
@@ -795,58 +777,16 @@ class FastQIO_multithread(IOBase, AlignIO):
             else:
                 # has read method -- StringIO
                 handle = self.handle.getvalue().split('\n')
-        #seqs = []
-        #append = seqs.append
-        #tid = 1
-        #for lineno, line in enumerate(handle):
-
-#        for lines in grouper(4, handle):
-#            h, r, o, score = lines
-            #pool.add_task("task_{}".format(tid), build_seq, h, r, o, score, 
-            #    callback=append)
-            #pool.apply_async(build_seq, args=(h, r, o, score,), callback=append)
-#            seq = build_seq(h, r, o, score)
-#            append(seq)
-
-        # using multiprocessing: 8 threads 128 chks -- 570.75s
-        #seqs = pool.map_async(build_seq, grouper(4,handle), chunksize=chks).get()
-#        pool.close()
-#        pool.join()
-        # Joblib: threading too slow
-        #p = Parallel(n_jobs=nthreads, backend="threading")
-        #func = delayed(build_seq, check_pickle=False)
+        # using cache makes computations more slower
+        #sequenceBuilderCached = memory.cache(sequenceBuilder)
         #joblib.parallel.CallBack = JoblibCallBack
         p = Parallel(n_jobs=nthreads, backend="multiprocessing", 
-                    batch_size=chunksize, verbose=100, temp_folder="/tmp/biTK",
-                    max_nbytes='100M', mmap_mode = 'r+')
+                    batch_size=chunksize, verbose=verbose, temp_folder="/tmp/biTK",
+                    max_nbytes='100M', mmap_mode = 'r')
         func = delayed(sequenceBuilder, check_pickle=True)
-        # when adding kwds to func, it will not work, __new__() wrong number of arguments
-        # keep four input arguments is OK
-        #seqs = p(func(header, raw_seq, option_id, quality_seq) for header, raw_seq, option_id, quality_seq in grouper(4, handle))
         seqs = p( func(header, raw_seq, option_id, quality_seq, 
                         alphabet, quality_score_fmt) 
             for header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt in grouper(4, handle, opts=(alphabet, quality_score_fmt))
             )
-
-        # concurrent futures ProcessExecutors: function must be pickable.
-#        futures={}
-#        with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:
-#            for lines in grouper(4, handle):
-#                header, raw_seq, option_id, quality_seq = lines
-#                future = executor.submit(biTK.ngs.io.build_seq, header, raw_seq, option_id#, quality_seq)
-#                future.add_done_callback(biTK.ngs.io.callback)
-#                #futures[future] = lines
-#                time.sleep(0.01)
-#                futures[future] = lines
-#            #futures = {executor.submit(biTK.ngs.io.build_seq, lines): lines for lines in #grouper(4, handle)}
-#            for future in concurrent.futures.as_completed(futures):
-#                l = futures[future]
-#                try:
-#                    seqs.append(future.result())
-#                except Exception as exc:
-#                    print("ExceptionError: {} for {}".format(exc, l))
-#                else:
-#                    print("Generate {} objects".format(len(seqs)))
-##            # shutdown
-#            executor.shutdown()
+        
         return seqs
