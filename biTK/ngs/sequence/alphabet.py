@@ -140,22 +140,9 @@ except ImportError:
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 
-from string import maketrans
-#if PY3:
-#    string_types = str,
-#    integer_types = int,
-#    class_types = type,
-#    text_type = str
-#    binary_type = bytes
-#else:
-#    string_types = basestring,
-#    integer_types = (int, long)
-#    class_types = (type, types.ClassType)
-#    text_type = unicode
-#    binary_type = str
 
-#from ._py3k import maketrans, _as_bytes
 if PY3:
+    maketrans = str.maketrans
     def _as_bytes(s):
         """ Convert a byte string or a unicode string into a byte string
         """
@@ -163,6 +150,7 @@ if PY3:
             return s
         return s.encode()
 else:
+    from string import maketrans
     def _as_bytes(s):
         """ Convert a byte string or a unicode string into a byte string
         """
