@@ -2,11 +2,11 @@
 
 __all__ = []
 
-from . import alphabet
-from alphabet import *
+#from . import alphabet
+from biTK.ngs.sequence.alphabet import *
 
-from . import sequence
-from sequence import *
+#from . import sequence
+from biTK.ngs.sequence.sequence import *
 
-from . import align
-from align import *
+#from . import align
+from biTK.ngs.sequence.align import *
