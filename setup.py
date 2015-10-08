@@ -92,11 +92,13 @@ def cfg_to_args(path='setup.cfg'):
                         "resources": ("files",),
                         "py_modules": ("files", "modules"),  # **
                         "package_data":("files", "package_data"),
+                        "install_requires":("meta", "install_requires")
                         }
 
     MULTI_FIELDS = ("classifiers",
                     "platforms",
                     "requires",
+                    "install_requires",
                     "provides",
                     "obsoletes",
                     "packages",
