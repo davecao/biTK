@@ -3,7 +3,7 @@
 __all__ = []
 
 # Store paramters and results
-from .alignmentInfo import *
+from biTK.ngs.sequence.align.alignmentInfo import *
 
-from . import alignment
-from alignment import *
+#from . import alignment
+from biTK.ngs.sequence.alignalignment import *
