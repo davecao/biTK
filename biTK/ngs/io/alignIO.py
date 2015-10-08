@@ -2,7 +2,6 @@
 from __future__ import print_function
 
 from functools import  wraps
-from types import StringTypes, FileType, ClassType, InstanceType
 import os 
 import sys
 import re
@@ -34,7 +33,12 @@ signal(SIGPIPE, SIG_DFL)
 
 if PY3K:
     #On Python 3, this will be a unicode StringIO
+    import io
     from io import StringIO
+    StringTypes = bytes
+    FileType = io.IOBase
+    ClassType = type
+    InstanceType = object
 else:
     # On Python 2 this will be a (bytes) string based handle.
     # Note this doesn't work as it is unicode based:
@@ -43,6 +47,7 @@ else:
         from cStringIO import StringIO
     except ImportError:
         from StringIO import StringIO
+    from types import StringTypes, FileType, ClassType, InstanceType
 
 cachedir = mkdtemp()
 memory = Memory(cachedir=cachedir, mmap_mode='r', verbose=0)
