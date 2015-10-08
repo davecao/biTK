@@ -116,18 +116,18 @@ class Sequence(object):
             print("The length of reads is not equal to that of quality scores")
             sys.exit(1)
         try:
-            self.raw_seq = Seq(raw_seq, alphabet=alphabet)
-            #print("{}:{}".format(quality_seq,quality_alphabet))
+#            print("{}:{}".format(raw_seq, alphabet))
             #print("{} - {}:{}".format(self.name, raw_seq, quality_seq))
-            #sys.stdout.flush()
+#            sys.stdout.flush()
+            self.raw_seq = Seq(raw_seq, alphabet=alphabet)
         except ValueError:
             print("Failed to construct objects of class Seq")
             sys.exit(1)
         try:
-            self.quality_seq = Seq(quality_seq, alphabet=quality_alphabet)
-            #print("{}:{}".format(quality_seq,quality_alphabet))
+#            print("{}:{}".format(quality_seq, quality_alphabet))
             #print("{} - {}:{}".format(self.name, raw_seq, quality_seq))
-            #sys.stdout.flush()
+#            sys.stdout.flush()
+            self.quality_seq = Seq(quality_seq, alphabet=quality_alphabet)
         except ValueError:
             print("Failed to construct objects of class Seq")
             sys.exit(1)

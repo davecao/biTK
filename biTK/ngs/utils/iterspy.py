@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # The following functions are refered to itertools implemented in pure python
 #
+import sys
 from biTK import PY3K
 
 if PY3K:
@@ -88,12 +89,18 @@ def combinations_with_full(iterable, r):
     for indices in product(range(n), repeat=r):
         yield tuple(pool[i] for i in indices)
 
-def grouper(n, iterable, fillvalue=None):
+def grouper(n, iterable, opts=(), fillvalue=None):
     """
         x = [ 1, 2, 3, 4, 5]
         grouper(2, x) -->[(1,2), (3,4), (5, None)]
     """
+    if not isinstance(opts, tuple):
+        print("opts in grouper should be a tuple")
+        sys.exit(1)
     args = [iter(iterable)] * n
     #return zl(fillvalue=fillvalue, *args)
     for x in zl(fillvalue=fillvalue, *args):
-        yield x
+        r = x + opts
+        #print(r)
+        #sys.stdout.flush()
+        yield r

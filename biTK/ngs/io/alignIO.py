@@ -21,6 +21,8 @@ from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 
 # joblib
+import joblib.parallel
+from collections import defaultdict
 from tempfile import mkdtemp
 from joblib import Parallel, delayed, Memory
 
@@ -697,14 +699,15 @@ def BuilderWrapper(func):
 #def sequenceBuilder(*args, **kwargs):
 
 #@BuilderWrapper
-def sequenceBuilder(header, raw_seq, option_id, quality_seq, **kwargs):
+def sequenceBuilder(header, raw_seq, option_id, quality_seq, alphabet,
+                    quality_score_fmt, **kwargs):
     try:
         # Create a bilab.ngs.sequence object
         title_fields = re.split("[\s|:]", header)
         sequence_id = title_fields[0]
 
-        alphabet = kwargs.get('alphabet', nucleic_alphabet)
-        quality_score_fmt = kwargs.get('quality_score_fmt', 'phred33')
+        #alphabet = kwargs.get('alphabet', nucleic_alphabet)
+        #quality_score_fmt = kwargs.get('quality_score_fmt', 'phred33')
 
         s_obj = Sequence(raw_seq.strip(), quality_seq.strip(), 
                        alphabet = alphabet, 
@@ -716,8 +719,17 @@ def sequenceBuilder(header, raw_seq, option_id, quality_seq, **kwargs):
        raise ValueError("Character not in alphabet: %s %s"%(nucleic_alphabet, raw_seq))
     return s_obj
 
-def callback(f):
-    print('callback {}'.format(f.result()))
+class JoblibCallBack(object):
+    completed = defaultdict(int)
+    def __init__(self, index, parallel):
+        self.index = index
+        self.parallel = parallel
+
+    def __call__(self, index):
+        JoblibCallBack.completed[self.parallel] += 1
+        print("done with {}".format(JoblibCallBack.completed[self.parallel]))
+        if self.parallel._original_iterable:
+            self.parallel.dispatch_next()
 
 class FastQIO_multithread(IOBase, AlignIO):
     """ Derived class 
@@ -737,7 +749,7 @@ class FastQIO_multithread(IOBase, AlignIO):
     def __init__(self, handle, *args, **kwargs):
         super(FastQIO_multithread, self).__init__(handle, *args, **kwargs)
 
-    def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred33', 
+    def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred64', 
                     nthreads=None, chunksize=32):
         """ Impletementation of the abstract method defined in IOBase
         Args:
@@ -810,7 +822,7 @@ class FastQIO_multithread(IOBase, AlignIO):
         # Joblib: threading too slow
         #p = Parallel(n_jobs=nthreads, backend="threading")
         #func = delayed(build_seq, check_pickle=False)
-
+        joblib.parallel.CallBack = JoblibCallBack
         p = Parallel(n_jobs=nthreads, backend="multiprocessing", 
                     batch_size=1, verbose=100, temp_folder="/tmp/biTK",
                     max_nbytes='1M', mmap_mode = 'r+')
@@ -818,7 +830,10 @@ class FastQIO_multithread(IOBase, AlignIO):
         # when adding kwds to func, it will not work, __new__() wrong number of arguments
         # keep four input arguments is OK
         #seqs = p(func(header, raw_seq, option_id, quality_seq) for header, raw_seq, option_id, quality_seq in grouper(4, handle))
-        seqs = p( func(header, raw_seq, option_id, quality_seq, alphabet=alphabet, quality_score_fmt=quality_score_fmt) for header, raw_seq, option_id, quality_seq in grouper(4, handle))
+        seqs = p( func(header, raw_seq, option_id, quality_seq, 
+                        alphabet, quality_score_fmt) 
+            for header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt in grouper(4, handle, opts=(alphabet, quality_score_fmt))
+            )
 
         # concurrent futures ProcessExecutors: function must be pickable.
 #        futures={}

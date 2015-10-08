@@ -539,34 +539,34 @@ class Seq(str):
         #return self.__str__();
         return "{}".format(self)
 
-    def _get_slots(self):
-        all_slots = (getattr(cls, '__slots__', ()) for cls in self.__class__.__mro__)
-        r = set(slot for slots in all_slots for slot in slots)
-        return r
-
-    def __getstate__(self):
-        # subclass do not must be slots
-        try:
-            state = vars(self).copy()
-        except TypeError:
-            state = {}
-        for slot in self._get_slots():
-            try:
-                val = getattr(self, slot)
-                state[slot] = val
-            except AttributeError:
-                pass
-        return state
-
-    def __setstate__(self, state):
-        for k in state:
-            setattr(self, k, state[k])
-
-    def __reduce__(self):
-        from copy_reg import __newobj__
-        args = (self._alphabet)
-        state = self.__getstate__()
-        return __newobj__, (type(self),args,), state, None, None
+#    def _get_slots(self):
+#        all_slots = (getattr(cls, '__slots__', ()) for cls in self.__class__.__mro__)
+#        r = set(slot for slots in all_slots for slot in slots)
+#        return r
+#
+#    def __getstate__(self):
+#        # subclass do not must be slots
+#        try:
+#            state = vars(self).copy()
+#        except TypeError:
+#            state = {}
+#        for slot in self._get_slots():
+#            try:
+#                val = getattr(self, slot)
+#                state[slot] = val
+#            except AttributeError:
+#                pass
+#        return state
+#
+#    def __setstate__(self, state):
+#        for k in state:
+#            setattr(self, k, state[k])
+#
+#    def __reduce__(self):
+#        from copy_reg import __newobj__
+#        args = (self._alphabet)
+#        state = self.__getstate__()
+#        return __newobj__, (type(self),args,), state, None, None
 
     def tostring(self) :
         """ Converts Seq to a raw string. 
