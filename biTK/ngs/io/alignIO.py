@@ -14,8 +14,6 @@ from biTK import PY3K
 from biTK.ngs.io.pathtools import OPEN
 from biTK.ngs.utils import grouper
 
-#from biTK.ngs.concurrent import ThreadPool
-
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 
@@ -760,7 +758,7 @@ class FastQIO_multithread(IOBase, AlignIO):
         super(FastQIO_multithread, self).__init__(handle, *args, **kwargs)
 
     def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred64', 
-                    nthreads=None, chunksize=32):
+                    nthreads=None, chunksize='auto'):
         """ Impletementation of the abstract method defined in IOBase
         Args:
             handle   -- handle to the file, or the filename as a string
@@ -779,30 +777,15 @@ class FastQIO_multithread(IOBase, AlignIO):
         else:
             nthreads = nthreads
 #            pool = ThreadPool(nthreads)
-
-        if chunksize is not None:
-            chks = chunksize
-        else:
-            chks = 32
-#        def build_seq(header, raw_seq, option_id, quality_seq):
-#        def build_seq(fastq_lines):
-#            try:
-#                header, raw_seq, option_id, quality_seq = fastq_lines
-#                # Create a bilab.ngs.sequence object
-#                title_fields = re.split("[\s|:]", header)
-#                sequence_id = title_fields[0]
-#                
-#                s_obj = Sequence(raw_seq.strip(), quality_seq.strip(), 
-#                                alphabet=alphabet, 
-#                                quality_alphabet = q_alphabet,
-#                                name=sequence_id, 
-#                                optionID=option_id, 
-#                                quality_format=quality_score_fmt,
-#                                description=header.strip())
-#            except ValueError:
-#                raise ValueError("Character not in alphabet: %s %s"%(alphabet, raw_seq))
-#
-#            return s_obj
+        if isinstance(chunksize, str) and chunksize != 'auto':
+            print("Warn: unknown setting for chunksize, use default value 'auto'.")
+            chunksize = 'auto'
+        elif chunksize is None:
+            chunksize = 'auto'
+        elif isinstance(chunksize, int):
+            if chunksize <= 0:
+                print("Warn: using 'auto' for chunksize set to <=0.")
+                chunksize = 'auto'
 
         # loop file handle
         if not isinstance(handle, file):
@@ -834,8 +817,8 @@ class FastQIO_multithread(IOBase, AlignIO):
         #func = delayed(build_seq, check_pickle=False)
         #joblib.parallel.CallBack = JoblibCallBack
         p = Parallel(n_jobs=nthreads, backend="multiprocessing", 
-                    batch_size=1, verbose=100, temp_folder="/tmp/biTK",
-                    max_nbytes='1M', mmap_mode = 'r+')
+                    batch_size=chunksize, verbose=100, temp_folder="/tmp/biTK",
+                    max_nbytes='100M', mmap_mode = 'r+')
         func = delayed(sequenceBuilder, check_pickle=True)
         # when adding kwds to func, it will not work, __new__() wrong number of arguments
         # keep four input arguments is OK
