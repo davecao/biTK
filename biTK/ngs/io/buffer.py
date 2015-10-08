@@ -89,7 +89,8 @@ class MemoryGzipFile(gzip.GzipFile):
         self.fileobj.write(self.compress.flush())
         gzip.write32u(self.fileobj, self.crc)
         # self.size may exceed 2GB, or even 4GB
-        gzip.write32u(self.fileobj, self.size & 0xffffffffL)
+        # > v3.0: the last 'L' is not necessary
+        gzip.write32u(self.fileobj, self.size & 0xffffffff)
 
     def close(self):
         if self.fileobj is None:
