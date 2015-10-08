@@ -38,12 +38,14 @@ jinja2_ENV.tests['Float'] = is_float
 __all__ = []
 
 if PY3K:
+    from copyreg import __newobj__ as reduce_newobj
     string_types = str,
     integer_types = int,
     class_types = type,
     text_type = str
     binary_type = bytes
 else:
+    from copy_reg import __newobj__ as reduce_newobj
     string_types = basestring,
     integer_types = (int, long)
     class_types = (type, types.ClassType)
