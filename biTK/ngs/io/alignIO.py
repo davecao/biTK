@@ -726,7 +726,7 @@ def sequenceBuilder(header, raw_seq, option_id, quality_seq, alphabet,
                        qs_fmt = quality_score_fmt,
                        description = header.strip())
     except ValueError:
-       raise ValueError("Character not in alphabet: %s %s"%(nucleic_alphabet, raw_seq))
+       raise ValueError("Character not in alphabet: %s %s"%(alphabet, raw_seq))
     return s_obj
 
 class JoblibCallBack(object):
@@ -832,7 +832,7 @@ class FastQIO_multithread(IOBase, AlignIO):
         # Joblib: threading too slow
         #p = Parallel(n_jobs=nthreads, backend="threading")
         #func = delayed(build_seq, check_pickle=False)
-        joblib.parallel.CallBack = JoblibCallBack
+        #joblib.parallel.CallBack = JoblibCallBack
         p = Parallel(n_jobs=nthreads, backend="multiprocessing", 
                     batch_size=1, verbose=100, temp_folder="/tmp/biTK",
                     max_nbytes='1M', mmap_mode = 'r+')

@@ -449,8 +449,13 @@ class Seq(str):
             alphabet = nucleic_alphabet
         if  not isinstance(alphabet, Alphabet): 
             alphabet = Alphabet(alphabet)
-        if not alphabet.alphabetic(self) :
+#        if not alphabet.alphabetic(self) :
+#            raise ValueError("Sequence not alphabetic %s, '%s'" %(alphabet, self))
+        try:
+            alphabet.alphabetic(self)
+        except ValueError as err:
             raise ValueError("Sequence not alphabetic %s, '%s'" %(alphabet, self))
+
         self._alphabet=alphabet
 
         return self

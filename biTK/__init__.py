@@ -42,14 +42,14 @@ if PY3K:
     string_types = str,
     integer_types = int,
     class_types = type,
-    text_type = str
+    text_type = str,
     binary_type = bytes
 else:
     from copy_reg import __newobj__ as reduce_newobj
     string_types = basestring,
-    integer_types = (int, long)
-    class_types = (type, types.ClassType)
-    text_type = unicode
+    integer_types = (int, long),
+    class_types = (type, types.ClassType),
+    text_type = unicode,
     binary_type = str
 
 from biTK.ngs import *

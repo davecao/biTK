@@ -21,13 +21,13 @@ if PY3K:
     string_types = str,
     integer_types = int,
     class_types = type,
-    text_type = str
+    text_type = str,
     binary_type = bytes
 else:
     string_types = basestring,
-    integer_types = (int, long)
-    class_types = (type, types.ClassType)
-    text_type = unicode
+    integer_types = (int, long),
+    class_types = (type, types.ClassType),
+    text_type = unicode,
     binary_type = str
 
 __all__ = ['Sequence', 'PHRED_ALPHABET']
@@ -94,10 +94,10 @@ class Sequence(object):
             format (str) : 'sanger'- currently only used as label.
         """
         super(Sequence, self).__init__()
-        print("{},{}".format(raw_seq, quality_seq))
-        sys.stdout.flush()
-        print(kwargs)
-        sys.stdout.flush()
+#        print("{},{}".format(raw_seq, quality_seq))
+#        sys.stdout.flush()
+#        print(kwargs)
+#        sys.stdout.flush()
 
         #raw_seq = args[0]
         #quality_seq = args[1]
@@ -120,17 +120,18 @@ class Sequence(object):
             #print("{} - {}:{}".format(self.name, raw_seq, quality_seq))
 #            sys.stdout.flush()
             self.raw_seq = Seq(raw_seq, alphabet=alphabet)
-        except ValueError:
-            print("Failed to construct objects of class Seq")
-            sys.exit(1)
+        except ValueError as err:
+            print("raw_seq: Failed to construct objects of class Seq")
+#            sys.exit(1)
+
         try:
 #            print("{}:{}".format(quality_seq, quality_alphabet))
             #print("{} - {}:{}".format(self.name, raw_seq, quality_seq))
 #            sys.stdout.flush()
             self.quality_seq = Seq(quality_seq, alphabet=quality_alphabet)
-        except ValueError:
-            print("Failed to construct objects of class Seq")
-            sys.exit(1)
+        except ValueError as err:
+            print("quality_seq: Failed to construct objects of class Seq")
+#            sys.exit(1)
         #self.name = kwargs.get('name', None)
         self.description = kwargs.get('description', None)
         self.optionID = kwargs.get('optionID', None)
