@@ -1105,6 +1105,7 @@ def main(argv):
         io_plug = 'FastQIO'
     else:
         io_plug = 'FastQIO_multithread'
+    io_plug = 'FastQIO_multithread'
 #    ThPool = ThreadPool(opt.mcpu)
     # Logger settings
     logfile = opt.logfilename

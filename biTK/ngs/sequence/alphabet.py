@@ -329,7 +329,7 @@ class Alphabet(object) :
         return ''.join(let)
 
     def __repr__(self) :
-        return "Alphabet( '" + self._letters +"', zip"+ repr(self._alternatives)+" )" 
+        return "Alphabet( '" + self.letters() +"', zip"+ repr(self._alternatives)+" )" 
     
     def __str__(self) :
         return str(self._letters)
@@ -376,6 +376,12 @@ class Alphabet(object) :
         for k in state:
             setattr(self, k, state[k])
 
+    def __reduce__(self):
+        from copy_reg import __newobj__
+        args = (self._letters)
+        state = self.__getstate__()
+        return __newobj__, (type(self),args,), state, None, None
+
 #    @staticmethod 
 #    def which(seqs, alphabets=None) :
 #        """ 
@@ -405,11 +411,9 @@ class Alphabet(object) :
 
 generic_alphabet = Alphabet(None, None)
 
-
 protein_alphabet = Alphabet('ACDEFGHIKLMNOPQRSTUVWYBJZX*-', 
                         zip('acdefghiklmnopqrstuvwybjzx?.~',
                             'ACDEFGHIKLMNOPQRSTUVWYBJZXX--') )
-
 
 nucleic_alphabet     =  Alphabet("ACGTURYSWKMBDHVN-", 
                             zip("acgturyswkmbdhvnXx?.~",
@@ -557,6 +561,12 @@ class Seq(str):
     def __setstate__(self, state):
         for k in state:
             setattr(self, k, state[k])
+
+    def __reduce__(self):
+        from copy_reg import __newobj__
+        args = (self._alphabet)
+        state = self.__getstate__()
+        return __newobj__, (type(self),args,), state, None, None
 
     def tostring(self) :
         """ Converts Seq to a raw string. 

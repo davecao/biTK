@@ -157,7 +157,7 @@ class ThreadTask(TaskWithEvent):
             self.exception = e
             error_message = "\n*** {0}\n{1}\n".format(
                 self.name, traceback.format_exc())
-            print error_message
+            print(error_message)
 
         if self.verbose:
             task_end_time = time.time()

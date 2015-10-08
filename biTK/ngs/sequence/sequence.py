@@ -7,6 +7,7 @@ import re
 import math
 import copy
 import types
+import multiprocessing.reduction
 
 from biTK.ngs.sequence import nucleic_alphabet, phred33_alphabet, \
                             phred64_alphabet, Seq
@@ -27,19 +28,20 @@ else:
     text_type = unicode
     binary_type = str
 
-__all__ = ['Sequence', 'SequencePickleHelper', 'PHRED_ALPHABET']
+__all__ = ['Sequence', 'PHRED_ALPHABET']
 
 PHRED_ALPHABET = {
     'phred33': phred33_alphabet,
     'phred64': phred64_alphabet
 }
-
-def SequencePickleHelper(cls, *args, **kwargs):
-    """ Pickle helper """
-    try:
-        return cls.__new__(cls, args, **kwargs)
-    except ValueError:
-        print("args: should be {} but {} is given.".format(2, len(args)))
+class _SequenceBuilderWrapper(object):
+    def __call__(self, cls, state, **kwargs):
+        print(state)
+        inst = _SequenceBuilderWrapper()
+        incls = cls()
+        incls.__setstate__(state)
+        inst.__class__ = incls
+        return inst
 
 class Sequence(object):
     """ 
@@ -59,13 +61,21 @@ class Sequence(object):
                 'alphabet', 'quality_alphabet', 'quality_format',
                 'raw_seq', 'quality_seq','scores', 'p_errors']
 
-    def __init__(self, raw_seq, quality_seq, 
-                alphabet = nucleic_alphabet, 
-                name = None,  
-                optionID = None,
-                description = None,
-                qs_fmt = 'phred33',
-                format = "sanger"):
+#    def __new__(cls, *args, **kwargs):
+#        print("Sequence __new__ is executed")
+#        #print(args)
+#        #print(kwargs)
+#        if not kwargs:
+#            print("kwargs is empty.")
+#        raw_seq, quality_seq = args
+#        self = object.__new__(cls)
+#        self.__init__(raw_seq, quality_seq, **kwargs)
+#        return self
+
+    def __init__(self, raw_seq, quality_seq, **kwargs):
+    #def __init__(self, *args, **kwargs):
+    #def __init__(self, raw_seq, quality_seq, alphabet, name, 
+    #                   optionID, description, qs_fmt):
         """
         Store a sequence in fastq format
         
@@ -82,28 +92,52 @@ class Sequence(object):
             format (str) : 'sanger'- currently only used as label.
         """
         super(Sequence, self).__init__()
+        print("{},{}".format(raw_seq, quality_seq))
+        sys.stdout.flush()
+        print(kwargs)
+        sys.stdout.flush()
 
-        #quality_alphabet (obj) : default is phred33_fmt.
+        #raw_seq = args[0]
+        #quality_seq = args[1]
+        qs_fmt = kwargs.get('qs_fmt', 'phred33')
+        alphabet = kwargs.get('alphabet', nucleic_alphabet)
+#        quality_alphabet (obj) : default is phred33_fmt.
         quality_alphabet = PHRED_ALPHABET[qs_fmt]
 
         self.alphabet = alphabet
         self.quality_format = qs_fmt
         self.quality_alphabet = quality_alphabet
-
-        self.raw_seq = Seq(raw_seq, alphabet=alphabet)
-        self.quality_seq = Seq(quality_seq, alphabet=quality_alphabet)
-
-        self.name = name
-        self.description = description
-        self.optionID = optionID
-        self.format = format
-        self.scores, self.p_errors = self.__chr2score(format=qs_fmt)
-        self.GC_content = self.__get_GC_content()
+        self.name = kwargs.get('name', None)
         # Check missing values
         if len(raw_seq) != len(quality_seq):
             print("Missing values:")
             print("The length of reads is not equal to that of quality scores")
             sys.exit(1)
+        try:
+            self.raw_seq = Seq(raw_seq, alphabet=alphabet)
+            #print("{}:{}".format(quality_seq,quality_alphabet))
+            #print("{} - {}:{}".format(self.name, raw_seq, quality_seq))
+            #sys.stdout.flush()
+        except ValueError:
+            print("Failed to construct objects of class Seq")
+            sys.exit(1)
+        try:
+            self.quality_seq = Seq(quality_seq, alphabet=quality_alphabet)
+            #print("{}:{}".format(quality_seq,quality_alphabet))
+            #print("{} - {}:{}".format(self.name, raw_seq, quality_seq))
+            #sys.stdout.flush()
+        except ValueError:
+            print("Failed to construct objects of class Seq")
+            sys.exit(1)
+        #self.name = kwargs.get('name', None)
+        self.description = kwargs.get('description', None)
+        self.optionID = kwargs.get('optionID', None)
+#        self.name = name
+#        self.description = description
+#        self.optionID = optionID
+        self.scores, self.p_errors = self.__chr2score(format=qs_fmt)
+        self.GC_content = self.__get_GC_content()
+        
 
     @property
     def __deepcopy_keyattrs(self):
@@ -112,8 +146,8 @@ class Sequence(object):
                 'name':self.name,
                 'optionID':self.optionID,
                 'quality_format':self.quality_format,
-                'description':self.description,
-                'format':self.format}
+                'description':self.description
+                }
     @property
     def __deepcopy_args(self):
         return [self.raw_seq.tostring(), self.quality_seq.tostring()]
@@ -140,14 +174,6 @@ class Sequence(object):
         p_errors = []
         scores = []
         cons = -0.1
-        if format == 'phred64':
-            offset = 64
-        elif format == 'phred33':
-            offset = 33
-        else:
-            print("Error: unknown quality score format, phred64|phred33")
-            sys.exit(1)
-
         for score in self.quality_seq.ords():
             if score == 255:
                 print("Specified score format seem not to be {}".format(format))
@@ -196,10 +222,6 @@ class Sequence(object):
 
     def __getstate__(self):
         # subclass do not must be slots
-#        if hasattr(self, '__dict__'):
-#            state = self.__dict__.copy()
-#        else:
-#            state = {}
         try:
             state = vars(self).copy()
         except TypeError:
@@ -217,34 +239,49 @@ class Sequence(object):
         for k in state:
             setattr(self, k , state[k])
 
-    def __reduce_ex_(self):
-        # reconstructor for pickling
-        kwargs = {'alphabet':self.alphabet, 
-                'quality_alphabet':self.quality_alphabet,
-                'name':self.name,
-                'optionID':self.optionID,
-                'quality_format':self.quality_format,
-                'description':self.description,
-                'format':self.format}
-        args = (self.raw_seq.tostring(), self.quality_seq.tostring())
-        cls = self.__class__
-        return (cls, (args[0], args[1]))
-
     def __reduce__(self):
-        #helper for pickle
-        kwargs = {'alphabet':self.alphabet, 
-                'quality_alphabet':self.quality_alphabet,
-                'name':self.name,
-                'optionID':self.optionID,
-                'quality_format':self.quality_format,
-                'description':self.description,
-                'format':self.format}
+        #print("Sequence __reduce__")
+        from copy_reg import __newobj__
+#        if hasattr(self, '__getnewargs__'):
+#            args = self.__getnewargs__()
+#        else:
+#            args = ()
+#
+#        if hasattr(self, '__getstate__'):
+#            state = self.__getstate__()
+#        elif hasattr(type(self), '__slots__'):
+#            state = self.__dict__, {k: getattr(self, k) for k in type(self).__slots__}
+#        else:
+#            state = self.__dict__
+#
+        if isinstance(self, list):
+            listitems = self
+        else:
+            listitems = None
+
+        if isinstance(self, dict):
+            dictitems = self.items()
+        else:
+            listitems = None
         args = (self.raw_seq.tostring(), self.quality_seq.tostring())
-        cls = self.__class__
-        # without kwargs is OK
-        return (cls, (args[0], args[1]))
-        #return SequencePickleHelper, (cls, args, kwargs), None
-        #return (SequencePickleHelper, (cls, args, kwargs))
+        state = self.__getstate__()
+
+        return __newobj__, (type(self),)+args, state, None, None
+        # for pickle
+#        kwargs = {'alphabet':self.alphabet, 
+#                'quality_alphabet':self.quality_alphabet,
+#                'name':self.name,
+#                'optionID':self.optionID,
+#                'quality_format':self.quality_format,
+#                'description':self.description
+#                }
+#        args = (self.raw_seq.tostring(), self.quality_seq.tostring())
+#        cls = self.__class__
+###        # without kwargs is OK
+##        return cls, args, kwargs
+#        #return (_SequenceBuilderWrapper(), (Sequence, object), state)
+#        return (cls, (args[0], args[1],), kwargs,)
+#        #return (cls, (self.raw_seq, self.quality_seq, self.alphabet, self.name, self.#optionID, self.description, self.quality_format, ))
 
     def __trim__(self, pos, start=0):
         """

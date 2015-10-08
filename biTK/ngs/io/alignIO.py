@@ -21,6 +21,7 @@ from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
 
 # joblib
+from tempfile import mkdtemp
 from joblib import Parallel, delayed, Memory
 
 # concurrent futures ProcessPoolExecutor
@@ -40,6 +41,9 @@ else:
         from cStringIO import StringIO
     except ImportError:
         from StringIO import StringIO
+
+cachedir = mkdtemp()
+memory = Memory(cachedir=cachedir, mmap_mode='r', verbose=0)
 
 #__all__=["AlignIO", "MultiFastaIO", "ClustalWIO", "FastQIO", FastQIO_multithread"]
 __all__=["AlignIO", "sequenceBuilder"]
@@ -678,12 +682,21 @@ class FastQIO(IOBase, AlignIO):
         seqs.append(s)
         return seqs
 
-#@memory.cache
-def sequenceBuilder(header, raw_seq, option_id, quality_seq, **kwargs):
+def BuilderWrapper(func):
+    """ Wrapper of sequenceBuilder """
+    @wraps(func)
+    def wrap_func(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrap_func
+
+
+#def sequenceBuilder(header, raw_seq, option_id, quality_seq, 
+#                    alphabet, quality_score_fmt):
 #def sequenceBuilder(header, raw_seq, option_id, quality_seq):
-#def build_seq(*args, **kwargs):
-#    header, raw_seq, option_id, quality_seq = args[0]
-    #print(args)
+#def sequenceBuilder(*args, **kwargs):
+
+#@BuilderWrapper
+def sequenceBuilder(header, raw_seq, option_id, quality_seq, **kwargs):
     try:
         # Create a bilab.ngs.sequence object
         title_fields = re.split("[\s|:]", header)
@@ -698,7 +711,6 @@ def sequenceBuilder(header, raw_seq, option_id, quality_seq, **kwargs):
                        optionID = option_id, 
                        qs_fmt = quality_score_fmt,
                        description = header.strip())
-
     except ValueError:
        raise ValueError("Character not in alphabet: %s %s"%(nucleic_alphabet, raw_seq))
     return s_obj
@@ -797,14 +809,16 @@ class FastQIO_multithread(IOBase, AlignIO):
         # Joblib: threading too slow
         #p = Parallel(n_jobs=nthreads, backend="threading")
         #func = delayed(build_seq, check_pickle=False)
-        kwds = {'alphabet' : alphabet, 
-                'quality_score_fmt' : quality_score_fmt
-        }
 
-        p = Parallel(n_jobs=nthreads, verbose=100, backend="multiprocessing")
-        func = delayed(biTK.ngs.io.sequenceBuilder, check_pickle=True)
+        p = Parallel(n_jobs=nthreads, backend="multiprocessing", 
+                    batch_size=1, verbose=100, temp_folder="/tmp/biTK",
+                    max_nbytes='1M', mmap_mode = 'r+')
+        func = delayed(sequenceBuilder, check_pickle=True)
         # when adding kwds to func, it will not work, __new__() wrong number of arguments
-        seqs = p(func(header, raw_seq, option_id, quality_seq, **kwds) for header, raw_seq, option_id, quality_seq in grouper(4, handle))
+        # keep four input arguments is OK
+        #seqs = p(func(header, raw_seq, option_id, quality_seq) for header, raw_seq, option_id, quality_seq in grouper(4, handle))
+        seqs = p( func(header, raw_seq, option_id, quality_seq, alphabet=alphabet, quality_score_fmt=quality_score_fmt) for header, raw_seq, option_id, quality_seq in grouper(4, handle))
+
         # concurrent futures ProcessExecutors: function must be pickable.
 #        futures={}
 #        with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:

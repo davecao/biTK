@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #import codecs
-#import sys 
+import sys 
 import os
 import io 
 #import re
@@ -27,6 +27,7 @@ try:
 except ImportError:
     from configparser import RawConfigParser
 
+PY3K = sys.version_info[0] > 2
 #pyincdir  = dsc.get_python_inc(plat_specific=1)
 #pylibdir = os.path.join('/', *pyincdir.split('/')[:-2] + ['lib'])
 
@@ -49,7 +50,9 @@ os.environ['OPT'] = ' '.join(
 
 def split_multiline(value):
     """Split a multiline string into a list, excluding blank lines."""
-    val = value.encode('utf-8')
+    val = value
+    if not isinstance(value, (str)):
+        val = value.encode('utf-8')
     return [element for element in
             (line.strip() for line in val.split('\n'))
             if element]
