@@ -92,13 +92,11 @@ def cfg_to_args(path='setup.cfg'):
                         "resources": ("files",),
                         "py_modules": ("files", "modules"),  # **
                         "package_data":("files", "package_data"),
-                        "install_requires":("meta", "install_requires")
                         }
 
     MULTI_FIELDS = ("classifiers",
                     "platforms",
                     "requires",
-                    "install_requires",
                     "provides",
                     "obsoletes",
                     "packages",
@@ -191,6 +189,10 @@ general_settings = cfg_to_args()
 # Key: resources has to be removed
 #general_settings.pop('resources')
 general_settings['zip-safe']=False
-#print(general_settings)
+# setup requires for external pacakges
+general_settings['install_requires'] = [
+    'matplotlib>1.4.0',
+    'joblib>=0.9.0b4']
+#print(general_settings['install_requires'])
 setup(**general_settings)
 #setup(**cfg_to_args())
