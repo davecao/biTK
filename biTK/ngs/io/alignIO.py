@@ -57,8 +57,13 @@ __all__=["AlignIO", "sequenceBuilder"]
 
 # decorator borrowed from Mozilla mxr
 def abstractmethod(method):
-    line = method.func_code.co_firstlineno
-    filename = method.func_code.co_filename
+    if PY3K:
+        line = method.__code__.co_firstlineno
+        filename = method.__code__.co_filename
+    else:
+        line = method.func_code.co_firstlineno
+        filename = method.func_code.co_filename
+
     @wraps(method)
     def not_implemented(*args, **kwargs):
         raise NotImplementedError('Abstract method %s at File "%s", line %s'
