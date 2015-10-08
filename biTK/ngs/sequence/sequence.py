@@ -9,6 +9,8 @@ import copy
 import types
 import multiprocessing.reduction
 
+from biTK.ngs import reduce_newobj
+
 from biTK.ngs.sequence import nucleic_alphabet, phred33_alphabet, \
                             phred64_alphabet, Seq
 from biTK.ngs.SubMatrice import SubstitutionMatrix as SUBMat
@@ -241,7 +243,7 @@ class Sequence(object):
 
     def __reduce__(self):
         #print("Sequence __reduce__")
-        from copy_reg import __newobj__
+        #from copy_reg import __newobj__
 #        if hasattr(self, '__getnewargs__'):
 #            args = self.__getnewargs__()
 #        else:
@@ -266,7 +268,7 @@ class Sequence(object):
         args = (self.raw_seq.tostring(), self.quality_seq.tostring())
         state = self.__getstate__()
 
-        return __newobj__, (type(self),)+args, state, None, None
+        return reduce_newobj, (type(self),)+args, state, None, None
         # for pickle
 #        kwargs = {'alphabet':self.alphabet, 
 #                'quality_alphabet':self.quality_alphabet,

@@ -188,7 +188,8 @@ class IOBase(object):
             # is string
             try:
                 self.handle = open(handle, 'r')
-            except IOError as (errno, strerr):
+            except IOError as e:
+                errno, strerr = e.args
                 print ("I/O error({0}): {1}".format(errno, strerr))
             except:
                 print("Unexpected error:{0}".format(sys.exc_info()[0]))
