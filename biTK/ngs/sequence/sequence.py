@@ -9,7 +9,7 @@ import copy
 import types
 import multiprocessing.reduction
 
-from biTK.ngs import reduce_newobj
+from biTK import reduce_newobj
 
 from biTK.ngs.sequence import nucleic_alphabet, phred33_alphabet, \
                             phred64_alphabet, Seq

@@ -15,6 +15,7 @@ from operator import add
 
 from biTK.ngs.sequence import nucleic_alphabet
 from biTK.ngs.io import AlignIO
+from biTK.ngs.io.pathtools import isReadable, isfile, isdir
 from biTK.ngs.statistics import mean, median, quantile
 from biTK.ngs.utils import Console, combinations_with_full, \
                             AnalysisItems, IndentedHelpFormatterWithNL, \
@@ -1053,6 +1054,14 @@ def parse_cmd(argv):
         elif (options.fastq_type == 'paired') and (len(options.fastqfile)!=2):
             print ("Error: --fastq-type is paired but one fastq files was specified.")
             parser.print_help()
+            sys.exit(1)
+        # check input file existance and readable
+        file_test = True
+        for f in options.fastqfile:
+            if not(isfile(f) and isReadable(f)):
+                print("{} does not exist or is unreadable.".format(f))
+                file_test = False
+        if not file_test:
             sys.exit(1)
 
     # check actions
