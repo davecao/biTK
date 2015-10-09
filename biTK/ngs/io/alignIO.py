@@ -22,6 +22,7 @@ import joblib.parallel
 from collections import defaultdict
 from tempfile import mkdtemp
 from joblib import Parallel, delayed, Memory
+from joblib.pool import has_shareable_memory
 
 # concurrent futures ProcessPoolExecutor
 import concurrent.futures
@@ -33,6 +34,7 @@ if PY3K:
     #On Python 3, this will be a unicode StringIO
     import io
     from io import StringIO
+    from itertools import zip_longest as zl
     StringTypes = bytes
     FileType = io.IOBase
     ClassType = type
@@ -46,6 +48,7 @@ else:
     except ImportError:
         from StringIO import StringIO
     from types import StringTypes, FileType, ClassType, InstanceType
+    from itertools import izip_longest as zl
 
 cachedir = mkdtemp()
 memory = Memory(cachedir=cachedir, mmap_mode='r', verbose=0)
@@ -753,9 +756,14 @@ class FastQIO_multithread(IOBase, AlignIO):
         Returns:
             seq -- a list of bilab.ngs.Sequence
         """
+        def chunk_jobs(n, iterable, fillvalue=None):
+            args = [iter(iterable)] * n
+            for x in zl(fillvalue=fillvalue, *args):
+                yield filter(None, x)
+
         handle = self.handle
         alphabet = Alphabet(alphabet) 
-
+        chks = 512
         # ThreadPool: use the number of cores available 
         if nthreads is None:
             nthreads = cpu_count()*2
@@ -768,7 +776,8 @@ class FastQIO_multithread(IOBase, AlignIO):
         elif isinstance(chunksize, int):
             if chunksize <= 0:
                 chunksize = 'auto'
-
+            else:
+                chks = chunksize
         # loop file handle
         if not isinstance(handle, file):
             if not hasattr(self.handle, "read"):
@@ -780,13 +789,16 @@ class FastQIO_multithread(IOBase, AlignIO):
         # using cache makes computations more slower
         #sequenceBuilderCached = memory.cache(sequenceBuilder)
         #joblib.parallel.CallBack = JoblibCallBack
-        p = Parallel(n_jobs=nthreads, backend="multiprocessing", 
-                    batch_size=chunksize, verbose=verbose, temp_folder="/tmp/biTK",
-                    max_nbytes='100M', mmap_mode = 'r')
+        #p = Parallel(n_jobs=nthreads, backend="multiprocessing", 
+        #        batch_size='auto', verbose=verbose, temp_folder="/tmp/biTK",
+        #            max_nbytes='100M', mmap_mode = 'r')
         func = delayed(sequenceBuilder, check_pickle=True)
-        seqs = p( func(header, raw_seq, option_id, quality_seq, 
-                        alphabet, quality_score_fmt) 
-            for header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt in grouper(4, handle, opts=(alphabet, quality_score_fmt))
-            )
-        
+#        seqs = p( func(header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt) 
+#            for header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt in grouper(4, handle, opts=(alphabet, quality_score_fmt)))
+        seqs = []
+        with Parallel(n_jobs=nthreads, backend="multiprocessing", batch_size='auto', verbose=verbose, temp_folder="/tmp/biTK", max_nbytes='100M', mmap_mode = 'r') as p:
+            for params in chunk_jobs(chks, grouper(4, handle, opts=(alphabet, quality_score_fmt))):
+                r = p( func(header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt) 
+                        for header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt in params)
+                seqs.extend(r)
         return seqs
