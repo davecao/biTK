@@ -617,9 +617,11 @@ class FastQIO(IOBase, AlignIO):
         Returns:
             seq -- a list of bilab.ngs.Sequence
         """
+        from itertools import islice
         handle = self.handle
         alphabet = Alphabet(alphabet) 
         q_alphabet = PHRED_ALPHABET[quality_score_fmt]
+        sequence_nlimit = kwargs.get('sequence_nlimit', 200000)
 
         def build_seq(raw_seq, quality_seq, header, option_id):
             try:
@@ -659,7 +661,12 @@ class FastQIO(IOBase, AlignIO):
         id_, oid_, quality = range(3)
         uniq_name = re.split('[:|.\s]', handle.readline())[0]
         handle.seek(0)
-        for lineno, line in enumerate(handle):
+        if sequence_nlimit <0:
+            handle_lines = handle
+        else:
+            handle_lines = islice(handle, 0, sequence_nlimit*4)
+
+        for lineno, line in enumerate(handle_lines):
             line = line.strip("\n")
             if not line:
                 continue
@@ -744,6 +751,7 @@ class FastQIO_multithread(IOBase, AlignIO):
         super(FastQIO_multithread, self).__init__(handle, *args, **kwargs)
 
     def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred64', 
+                    sequence_nlimit = 200000,
                     nthreads=None, chunksize=0, verbose=0):
         """ Impletementation of the abstract method defined in IOBase
         Args:
@@ -753,9 +761,9 @@ class FastQIO_multithread(IOBase, AlignIO):
         Returns:
             seq -- a list of bilab.ngs.Sequence
         """
+        from itertools import islice
         handle = self.handle
         alphabet = Alphabet(alphabet) 
-
         # ThreadPool: use the number of cores available 
         if nthreads is None:
             nthreads = cpu_count()*2
@@ -777,6 +785,10 @@ class FastQIO_multithread(IOBase, AlignIO):
             else:
                 # has read method -- StringIO
                 handle = self.handle.getvalue().split('\n')
+        if sequence_nlimit < 0:
+            handle_lines = handle
+        else:
+            handle_lines = islice(handle, 0, sequence_nlimit*4)
         # using cache makes computations more slower
         #sequenceBuilderCached = memory.cache(sequenceBuilder)
         #joblib.parallel.CallBack = JoblibCallBack
@@ -786,7 +798,7 @@ class FastQIO_multithread(IOBase, AlignIO):
         func = delayed(sequenceBuilder, check_pickle=True)
         seqs = p( func(header, raw_seq, option_id, quality_seq, 
                         alphabet, quality_score_fmt) 
-            for header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt in grouper(4, handle, opts=(alphabet, quality_score_fmt))
+            for header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt in grouper(4, handle_lines, opts=(alphabet, quality_score_fmt))
             )
         
         return seqs

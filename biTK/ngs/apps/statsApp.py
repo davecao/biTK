@@ -71,6 +71,7 @@ class memoize:
             return self.memoized[args]
 
 def load_data(filename, minLen, 
+                sequence_nlimit = 200000,
                 io_plug = 'FastQIO_multithread',
                 fastq_type = 'single',
                 compressed=None, 
@@ -86,6 +87,7 @@ def load_data(filename, minLen,
         nthreads = cpu_count()
     parser = AlignIO(filename, ConcreteIO=io_plug, compressed=compressed)
     seqslist_full = parser.parse(alphabet=alphabet, 
+                                sequence_nlimit = sequence_nlimit,
                                  quality_score_fmt=quality_score_fmt,
                                  nthreads=nthreads, chunksize=chks, 
                                  verbose=verbose)
@@ -777,7 +779,6 @@ def statistics_report(seqslist, removed_list, max_length, cmd, opt):
     reportdir = opt.reportdir
     n_seqs = len(seqslist)
     n_removed = len(removed_list)
-
     LOGGER.info("Fastq File: {}".format(inputfile))
     LOGGER.info("Total sequences: {}".format(len(seqslist)+len(removed_list)))
     LOGGER.info("Sequences: {}".format(len(seqslist)))
@@ -998,6 +999,12 @@ def parse_cmd(argv):
         "Option arguments for statistics."
     )
     statistics_opts.add_option(
+        "--sequence-nlimit", dest='sequence_nlimit',
+        type="int", default=200000,
+        help="The number of reads will be used for statistical analysis. " \
+             "If a negative is given, the entire reads will be loaded into memory.default is first 200,000 reads in the fastq file."
+    )
+    statistics_opts.add_option(
         "-k", "--kmer", dest='stats_kmer',
         type='int', default=3,
         help='Occurrencies of k-mer continuous bases'
@@ -1126,6 +1133,7 @@ def main(argv):
     LOGGER.info(' '.join(argv))
     LOGGER.timeit(label='Load fastq')
     seqslist, removed_list, max_length = load_data(inputfile, trim_min_len,
+                        sequence_nlimit = opt.sequence_nlimit,
                         io_plug = io_plug, 
                         fastq_type = fastq_type,
                         alphabet=nucleic_alphabet,

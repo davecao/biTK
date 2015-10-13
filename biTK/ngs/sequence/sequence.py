@@ -111,10 +111,11 @@ class Sequence(object):
         self.quality_alphabet = quality_alphabet
         self.name = kwargs.get('name', None)
         # Check missing values
-        if len(raw_seq) != len(quality_seq):
-            print("Missing values:")
-            print("The length of reads is not equal to that of quality scores")
-            sys.exit(1)
+        try:
+            len(raw_seq) != len(quality_seq)
+        except ValueError:
+            raise ValueError("The length of reads is not equal to that of quality scores\n read ({}): {}\n quality({}): {}".format(len(raw_seq), raw_seq,len(quality_seq), quality_seq)) 
+            #sys.exit(1)
         try:
 #            print("{}:{}".format(raw_seq, alphabet))
             #print("{} - {}:{}".format(self.name, raw_seq, quality_seq))
