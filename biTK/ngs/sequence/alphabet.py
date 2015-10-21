@@ -129,6 +129,7 @@ import sys
 import types
 
 from array import array
+from itertools import groupby
 
 try:
     # from python2
@@ -664,7 +665,6 @@ class Seq(str):
             Sequence("abcabc").word_count(3)
             [('abc', 2), ('bca', 1), ('cab', 1)]
         """
-        from itertools import groupby
         words = sorted(self.words(k,alphabet))
         return [ (item, sum( 1 for n in group) ) for item, group in groupby(words)]
 

@@ -1,21 +1,26 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-from functools import  wraps
+from functools import wraps, partial
 import os 
 import sys
 import re
 import pprint
 import time
+import mmap
+from itertools import islice
 import biTK
 from biTK.ngs.sequence import Sequence, Alphabet,nucleic_alphabet,\
                             PHRED_ALPHABET
 from biTK import PY3K
 from biTK.ngs.io.pathtools import OPEN
 from biTK.ngs.utils import grouper
+from biTK.ngs.utils import profile
 
 from multiprocessing import cpu_count
-from multiprocessing.pool import ThreadPool
+#from multiprocessing.pool import ThreadPool
+# memory
+#from memory_profiler import profile
 
 # joblib
 import joblib.parallel
@@ -607,7 +612,7 @@ class FastQIO(IOBase, AlignIO):
     def __init__(self, handle, *args, **kwargs):
         super(FastQIO, self).__init__(handle, *args, **kwargs)
 
-
+    @profile
     def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred33',**kwargs):
         """ Impletementation of the abstract method defined in IOBase
         Args:
@@ -617,31 +622,31 @@ class FastQIO(IOBase, AlignIO):
         Returns:
             seq -- a list of bilab.ngs.Sequence
         """
-        from itertools import islice
+        #from itertools import islice
         handle = self.handle
         alphabet = Alphabet(alphabet) 
         q_alphabet = PHRED_ALPHABET[quality_score_fmt]
         sequence_nlimit = kwargs.get('sequence_nlimit', 200000)
 
-        def build_seq(raw_seq, quality_seq, header, option_id):
-            try:
-                # Create a bilab.ngs.sequence object
-                title_fields = re.split("[\s|:]", header)
-                sequence_id = title_fields[0]
-                
-                s = Sequence(raw_seq, quality_seq, 
-                                alphabet=alphabet, 
-                                quality_alphabet = q_alphabet,
-                                name=sequence_id, 
-                                optionID=option_id, 
-                                quality_format=quality_score_fmt,
-                                description=header)
-            except ValueError:
-                raise ValueError(
-                    "Failed to parse the file at the line %d: "
-                    "Character not in alphabet: %s" 
-                    " %s"%(lineno, alphabet, raw_seq))
-            return s
+#        def build_seq(raw_seq, quality_seq, header, option_id):
+#            try:
+#                # Create a bilab.ngs.sequence object
+#                title_fields = re.split("[\s|:]", header)
+#                sequence_id = title_fields[0]
+#                
+#                s = Sequence(raw_seq, quality_seq, 
+#                                alphabet=alphabet, 
+#                                quality_alphabet = q_alphabet,
+#                                name=sequence_id, 
+#                                optionID=option_id, 
+#                                quality_format=quality_score_fmt,
+#                                description=header)
+#            except ValueError:
+#                raise ValueError(
+#                    "Failed to parse the file at the line %d: "
+#                    "Character not in alphabet: %s" 
+#                    " %s"%(lineno, alphabet, raw_seq))
+#            return s
 
         # loop file handle
         if not isinstance(handle, file):
@@ -651,53 +656,80 @@ class FastQIO(IOBase, AlignIO):
             else:
                 # has read method -- StringIO
                 handle = self.handle.getvalue().split('\n')
+#        seqs = []
+#        raw_sequence = ""
+#        quality_sequence = ""
+#        option_id = ""
+#        state = -1
+#        header = None
+#        header_lineno = 0
+#        id_, oid_, quality = range(3)
+#        uniq_name = re.split('[:|.\s]', handle.readline())[0]
+#        handle.seek(0)
+#        if sequence_nlimit <0:
+#            handle_lines = handle
+#        else:
+#            handle_lines = islice(handle, 0, sequence_nlimit*4)
+#        for lineno, line in enumerate(handle_lines):
+#            line = line.strip("\n")
+#            if not line:
+#                continue
+#            if line.startswith(uniq_name):
+#                state = id_
+#                if header is not None:
+#                    # Create Sequence object
+#                    s = build_seq(raw_sequence, quality_sequence, header,
+#                                    option_id)
+#                    seqs.append(s)
+#                    raw_sequence = ""
+#                    quality_sequence = ""
+#                    header =None
+#                header = line[1:]
+#                header_lineno = lineno
+#            elif line.startswith('+'):
+#                option_id = line[1:]
+#                state = quality
+#            #elif line.startswith('!'):
+#            #    quality_sequence = line[1:]
+#            #    state = quality
+#            else:
+#                if state == id_:
+#                    raw_sequence += line
+#                elif state == quality:
+#                    quality_sequence += line
+#
+#        # Store last one
+#        s = build_seq(raw_sequence, quality_sequence,header,
+#                                    option_id)
+#        seqs.append(s)
         seqs = []
-        raw_sequence = ""
-        quality_sequence = ""
-        option_id = ""
-        state = -1
-        header = None
-        header_lineno = 0
-        id_, oid_, quality = range(3)
-        uniq_name = re.split('[:|.\s]', handle.readline())[0]
-        handle.seek(0)
+        seqs_append = seqs.append
+        #m_handle = mmap.mmap()
         if sequence_nlimit <0:
             handle_lines = handle
         else:
             handle_lines = islice(handle, 0, sequence_nlimit*4)
 
-        for lineno, line in enumerate(handle_lines):
-            line = line.strip("\n")
-            if not line:
-                continue
-            if line.startswith(uniq_name):
-                state = id_
-                if header is not None:
-                    # Create Sequence object
-                    s = build_seq(raw_sequence, quality_sequence, header,
-                                    option_id)
-                    seqs.append(s)
-                    raw_sequence = ""
-                    quality_sequence = ""
-                    header =None
-                header = line[1:]
-                header_lineno = lineno
-            elif line.startswith('+'):
-                option_id = line[1:]
-                state = quality
-            #elif line.startswith('!'):
-            #    quality_sequence = line[1:]
-            #    state = quality
-            else:
-                if state == id_:
-                    raw_sequence += line
-                elif state == quality:
-                    quality_sequence += line
+        #for header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt in grouper(4, handle_lines, opts=(alphabet, quality_score_fmt)):
+        for header, raw_seq, option_id, quality_seq in grouper(4, handle_lines):
+            try:
+                if header[0] != "@" or option_id[0] != "+":
+                    print("Malformated fastq file:")
+                    print("{}\n{}\n{}\n\{}".format(header, raw_seq, option_id, quality_seq))
+                    sys.exit(1)
 
-        # Store last one
-        s = build_seq(raw_sequence, quality_sequence,header,
-                                    option_id)
-        seqs.append(s)
+                title_fields = re.split("[\s|:]", header)
+                sequence_id = title_fields[0]
+                s_obj = Sequence(raw_seq.strip(), quality_seq.strip(), 
+                       alphabet = alphabet, 
+                       name = sequence_id, 
+                       optionID = option_id, 
+                       qs_fmt = quality_score_fmt,
+                       description = header.strip())
+                seqs_append(s_obj)
+            except ValueError:
+                raise ValueError("Character not in alphabet: %s %s"%(alphabet, raw_seq))
+        handle.close()
         return seqs
 
 def sequenceBuilder(header, raw_seq, option_id, quality_seq, alphabet,
@@ -761,7 +793,6 @@ class FastQIO_multithread(IOBase, AlignIO):
         Returns:
             seq -- a list of bilab.ngs.Sequence
         """
-        from itertools import islice
         handle = self.handle
         alphabet = Alphabet(alphabet) 
         # ThreadPool: use the number of cores available 
@@ -800,5 +831,5 @@ class FastQIO_multithread(IOBase, AlignIO):
                         alphabet, quality_score_fmt) 
             for header, raw_seq, option_id, quality_seq, alphabet, quality_score_fmt in grouper(4, handle_lines, opts=(alphabet, quality_score_fmt))
             )
-        
+        handle.close()
         return seqs

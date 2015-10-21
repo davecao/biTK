@@ -19,11 +19,14 @@ from biTK.ngs.io.pathtools import isReadable, isfile, isdir
 from biTK.ngs.statistics import mean, median, quantile
 from biTK.ngs.utils import Console, combinations_with_full, \
                             AnalysisItems, IndentedHelpFormatterWithNL, \
-                            StatsAnalysisReport
+                            StatsAnalysisReport, profile
 from biTK import string_types
 #from multiprocessing.pool import ThreadPool as Pool
 from biTK.ngs.concurrent import ThreadPool
 from multiprocessing import cpu_count
+from itertools import chain
+
+
 
 try:
     import matplotlib
@@ -125,7 +128,7 @@ def gc_content_all(contents, alphabet=nucleic_alphabet, pth="."):
     #nt = dict(zip(list(alphabet), contents))
     #GC_content = float(nt['G'] + nt['C'])/sum(contents)*100.0
 
-    from itertools import chain
+    #from itertools import chain
     data = list(chain.from_iterable(contents))
     CG_inx = [alphabet.index('C'), alphabet.index('G')]
     GC_sum = 0.0
@@ -173,8 +176,6 @@ def boxWisherPlot(data, mean_data, median_data, quantile_data, fliersMarker='',
         whis : default is 1.5
         other see matplotlib's boxplot()
     """
-    from itertools import chain
-
     n_box = len(data)
     # check dimensions
     ndims = len(set([n_box, len(mean_data),len(median_data), len(quantile_data)]))
@@ -341,7 +342,7 @@ def quality_scores_per_sequence(quality_scores_mat, img_file=None, dpi=300, pth 
     else:
         img_path = pth + os.sep + img_file
 
-    from itertools import chain
+    #from itertools import chain
     #data = list(chain.from_iterable(quality_scores_mat))
     data = []
     for item in chain(quality_scores_mat):
@@ -386,7 +387,7 @@ def sequence_content_per_base(contents, alphabet=nucleic_alphabet, img_file=None
 
     ACGT_inx = [alphabet.index('A'), alphabet.index('C'),
                 alphabet.index('G'), alphabet.index('T')]
-    from itertools import chain
+    #from itertools import chain
     c = []
     for item in chain(contents):
         selected_ = [item[i] for i in ACGT_inx]
@@ -435,7 +436,7 @@ def gc_content_per_base(contents, alphabet=nucleic_alphabet, img_file=None, dpi=
     else:
         img_path = pth + os.sep + img_file
     GC_inx = [alphabet.index('G'),alphabet.index('C')]
-    from itertools import chain
+    #from itertools import chain
     gc = []
     for item in chain(contents):
         selected_ = sum([item[i] for i in GC_inx])
@@ -477,7 +478,7 @@ def gc_content_per_sequence(seqslist, alphabet=nucleic_alphabet, img_file=None, 
         img_path = pth + os.sep + img_file
     gc = [0]*len(seqslist)
     for inx, seq in enumerate(seqslist):
-        gc[inx] = seq.GC_content
+        gc[inx] = seq.get_GC_content()
         #gc.append(seq.get_GC_content(alphabet=alphabet))
     gc_count = Counter(gc)
     gc_sorted = sorted(zip(gc_count.keys(), gc_count.values()))
@@ -512,7 +513,7 @@ def N_content_per_base(contents, alphabet=nucleic_alphabet, img_file=None, dpi=3
     else:
         img_path = pth + os.sep + img_file
     N_inx = alphabet.index('N')
-    from itertools import chain
+    #from itertools import chain
     N_content = []
     for item in chain(contents):
         d = item[N_inx]
@@ -663,9 +664,13 @@ def stats_preprocess(seqslist, npos, alphabet=nucleic_alphabet):
         #scores = [ 0 for i in range(npos) ]
         #for i, v in enumerate(seq.scores):
         #    scores[i] = v
+        # get scores
+        seq_scores = seqslist[i].get_scores()
+        n = len(seq_scores)
         scores = [0] * npos
-        n = len(seqslist[i].scores)
-        scores[:n] = seqslist[i].scores
+        #n = len(seqslist[i].scores)
+        #scores[:n] = seqslist[i].scores
+        scores[:n] = seq_scores
         qs_ap(scores)
 
         for row, val in enumerate(s):

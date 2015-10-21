@@ -17,6 +17,8 @@ from biTK.ngs.SubMatrice import SubstitutionMatrix as SUBMat
 from biTK.ngs.sequence.align import Alignment 
 from biTK import PY3K
 
+from itertools import chain
+
 if PY3K:
     string_types = str,
     integer_types = int,
@@ -139,8 +141,8 @@ class Sequence(object):
 #        self.name = name
 #        self.description = description
 #        self.optionID = optionID
-        self.scores, self.p_errors = self.__chr2score(format=qs_fmt)
-        self.GC_content = self.__get_GC_content()
+        #self.scores, self.p_errors = self.__chr2score(format=qs_fmt)
+        #self.GC_content = self.__get_GC_content()
         
 
     @property
@@ -315,6 +317,23 @@ class Sequence(object):
         """
         pass
 
+    def get_scores(self):
+        scores = []
+#        p_errors = []
+        scores_append = scores.append
+#        p_errors_append = p_errors.append
+        #cons = -0.1
+        for score in chain(self.quality_seq.ords()):
+            if score == 255:
+                print("Specified score format seem not to be {}".format(format))
+                print("{}\n{}".format(self.raw_seq, self.quality_seq))
+                sys.exit(1)
+            scores_append(score)
+#            p_errors_append(math.pow(10, score*cons))
+        self.scores = scores
+#        self.p_errors = p_errors
+#        return (scores, p_errors)
+        return scores
 
     def toFastq(self):
         fastq_fmt = "@{}{}".format(self.description, os.linesep)
@@ -347,8 +366,8 @@ class Sequence(object):
 #        if 'C' in nt_all:
 #            nt_C = nt_all['C']
 #        gc = (nt_G + nt_C)/s*100
-        return self.GC_content
-
+        #return self.GC_content
+        return self.__get_GC_content()
     def trim_score_head(self, score):
         """
             Trim n letters with lower score
@@ -465,7 +484,7 @@ class Sequence(object):
             adapters(str or list, tuple of str):
                 adapter sequence or a list/tuple of adapter sequences 
         """
-        from itertools import chain
+        #from itertools import chain
         if isinstance(adapters, string_types):
             self.__remove_adapter(adapters)
         elif isinstance(adapters, (list, tuple)):

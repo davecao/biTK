@@ -9,3 +9,5 @@ from biTK.ngs.utils.iterspy import *
 from biTK.ngs.utils.report import *
 
 from biTK.ngs.utils.helpformatter import *
+
+from biTK.ngs.utils.profilehooks import *
