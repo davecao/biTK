@@ -19,7 +19,7 @@ __all__ = ['simulateReadCount']
 
 
 def simulateReadCount(Ngenes=10000, groups=3, Ntrials=2, PDEG=0.20,
-                      degrees=[4, 1], nb_success_rate=0.1, verbose=False):
+                      degrees=[4, 1, 1], nb_success_rate=0.1, verbose=False):
     """
         Generate simulation data under negative binomial distribution
         Introduction of Negative binomial distribution
