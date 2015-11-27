@@ -80,6 +80,8 @@ def simulateReadCount(Ngenes=10000, groups=3, Ntrials=2, PDEG=0.20,
     Usage:
         count = simulateReadCount(Ngenes=10000, groups=3, Ntrials=2, PDEG=0.20,
                       degrees=[4, 1], nb_success_rate=0.1, verbose=False)
+        On terminal
+        python -c "import sys;import biTK;import numpy as np; c=biTK.ngs.statistics.simulateReadCount();np.savetxt(sys.stdout, c, fmt='%5d')"
     """
     if not isinstance(Ngenes, (int, long)) or \
        not isinstance(groups, (int, long)) or \
@@ -126,6 +128,5 @@ def simulateReadCount(Ngenes=10000, groups=3, Ntrials=2, PDEG=0.20,
         count_data[0:m_boundary, :] *= degrees
         # Combine data
         m_data = np.hstack((m_data, count_data))
-        
 
     return m_data
