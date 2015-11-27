@@ -16,3 +16,5 @@ from biTK.ngs.statistics.functools import *
 #from . import functools
 #from functools import *
 
+
+from biTK.ngs.statistics.distributions import *

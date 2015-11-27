@@ -15,7 +15,7 @@ from biTK.ngs.sequence import Sequence, Alphabet,nucleic_alphabet,\
 from biTK import PY3K
 from biTK.ngs.io.pathtools import OPEN
 from biTK.ngs.utils import grouper
-from biTK.ngs.utils import profile
+#from biTK.ngs.utils import profile
 
 from multiprocessing import cpu_count
 #from multiprocessing.pool import ThreadPool
@@ -612,7 +612,7 @@ class FastQIO(IOBase, AlignIO):
     def __init__(self, handle, *args, **kwargs):
         super(FastQIO, self).__init__(handle, *args, **kwargs)
 
-    @profile
+#    @profile
     def parse(self, alphabet=nucleic_alphabet, quality_score_fmt='phred33',**kwargs):
         """ Impletementation of the abstract method defined in IOBase
         Args:
