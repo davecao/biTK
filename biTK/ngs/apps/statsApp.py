@@ -774,7 +774,7 @@ def tbl_tail(seqslist, n, inPlace=False, verbose=False):
     if not inPlace:
         return seqslist_copy
 
-@profile
+# @profile
 def statistics_report(seqslist, removed_list, max_length, cmd, opt):
     """
         do statistical analysis
