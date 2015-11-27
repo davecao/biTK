@@ -81,16 +81,17 @@ def simulateReadCount(Ngenes=10000, groups=3, Ntrials=2, PDEG=0.20,
         count = simulateReadCount(Ngenes=10000, groups=3, Ntrials=2, PDEG=0.20,
                       degrees=[4, 1], nb_success_rate=0.1, verbose=False)
     """
-    if isinstance(Ngenes, (int, long)) or isinstance(groups, (int, long)) or\
-       isinstance(Ntrials, (int, long)):
+    if not isinstance(Ngenes, (int, long)) or \
+       not isinstance(groups, (int, long)) or \
+       not isinstance(Ntrials, (int, long)):
             print("ValueError: the type of input arguments is wrong.")
             sys.exit(1)
 
-    if PDEG >= 0 and PDEG <= 1:
+    if not (PDEG >= 0 and PDEG <= 1):
         print("ValueError: PDEG should be in [0, 1].")
         sys.exit(1)
 
-    if nb_success_rate >= 0 and nb_success_rate <= 1:
+    if not (nb_success_rate >= 0 and nb_success_rate <= 1):
         print("ValueError: nb_success_rate should be in [0, 1].")
         sys.exit(1)
 
