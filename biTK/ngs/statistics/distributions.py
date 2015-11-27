@@ -100,6 +100,7 @@ def simulateReadCount(Ngenes=10000, groups=3, Ntrials=2, PDEG=0.20,
         degrees = np.ones((1, groups))
         degrees[::2] = w
     elif isinstance(degrees, list):
+        degrees = np.asarray(degrees)
         if len(degrees) != groups:
             print("ValueError: the length if customized degrees"
                   " is not {} (defined by groups)".format(groups))
@@ -121,8 +122,10 @@ def simulateReadCount(Ngenes=10000, groups=3, Ntrials=2, PDEG=0.20,
                         1,
                         nb_success_rate,
                         (Ngenes, groups))
-        m_data = np.hstack((m_data, count_data))
         # Set expression degree
-        m_data[0:m_boundary, :] *= degrees
+        count_data[0:m_boundary, :] *= degrees
+        # Combine data
+        m_data = np.hstack((m_data, count_data))
+        
 
     return m_data
