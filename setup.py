@@ -1,26 +1,40 @@
 #!/usr/bin/env python
 
-#import codecs
-import sys 
+import sys
 import os
-import io 
-#import re
+import io
 
-#import platform as plat
-
-#import distutils.sysconfig as dsc
-#from distutils import core, dir_util
-#from distutils.core import setup,Extension
-#from distutils.command import build_ext
+import distutils.sysconfig as dsc
+# from distutils import core, dir_util
+# from distutils.core import setup,Extension
+# from distutils.command import build_ext
 from distutils.sysconfig import get_config_var
-#from distutils.ccompiler import show_compilers
+# from distutils.ccompiler import show_compilers
 # use setuptools
 from setuptools import setup, Extension
+try:
+    from Cython.Distutils import build_ext
+    # from Cython.Build import cythonize
+except ImportError:
+    from distutils.command import build_ext
+
+pyincdir = dsc.get_python_inc(plat_specific=1)
+pylibdir = os.path.join('/', *pyincdir.split('/')[:-2] + ['lib'])
+try:
+    import numpy as np
+    np_include_dir = np.get_include()
+    # include_dirs.append(np_include_dir)
+except ImportError:
+    np_include_dir = os.path.join(
+                pylibdir.replace('lib/python', 'local/lib/python'),
+                'numpy', 'core', 'include')
+    print("Unable to import numpy, trying header %s".format(np_include_dir))
+    sys.exit(1)
 
 from glob import glob
 pj = os.path.join
 
-#from distutils.command.install_data import install_data
+# from distutils.command.install_data import install_data
 
 try:
     from ConfigParser import RawConfigParser
@@ -28,24 +42,19 @@ except ImportError:
     from configparser import RawConfigParser
 
 PY3K = sys.version_info[0] > 2
-#pyincdir  = dsc.get_python_inc(plat_specific=1)
-#pylibdir = os.path.join('/', *pyincdir.split('/')[:-2] + ['lib'])
-
-#try:
-#    import numpy as np
-#    np_include_dir = np.get_include()
-#    #include_dirs.append(np_include_dir)
-#except ImportError:
-#    np_include_dir = os.path.join(
-#                pylibdir.replace('lib/python', 'local/lib/python'),
-#                'numpy', 'core', 'include')
-#    print("Unable to import numpy, trying header %s".format(npyincdir))
-    #raise ImportError('Numpy is a required package')
 
 # Remove unwanted options
 _UNWANTED_OPTS = frozenset(['-Wstrict-prototypes'])
 os.environ['OPT'] = ' '.join(
-    _ for _ in get_config_var('OPT').strip().split() if _ not in _UNWANTED_OPTS)
+                    _ for _ in get_config_var('OPT').strip().split()
+                    if _ not in _UNWANTED_OPTS)
+
+hierarchy = Extension(
+    "biTK.ngs.cluster.hierarchy",
+    include_dirs=[np_include_dir],
+    sources=[
+        'biTK/ngs/cluster/_hierarchy.pyx'
+        ])
 
 
 def split_multiline(value):
@@ -91,7 +100,7 @@ def cfg_to_args(path='setup.cfg'):
                         "scripts": ("files",),
                         "resources": ("files",),
                         "py_modules": ("files", "modules"),  # **
-                        "package_data":("files", "package_data"),
+                        "package_data": ("files", "package_data"),
                         }
 
     MULTI_FIELDS = ("classifiers",
@@ -116,8 +125,8 @@ def cfg_to_args(path='setup.cfg'):
 
     # The real code starts here
     config = RawConfigParser()
-    #f = codecs.open(path, encoding='utf-8')
-    f = io.open(path,encoding="utf-8")
+    # f = codecs.open(path, encoding='utf-8')
+    f = io.open(path, encoding="utf-8")
     try:
         config.readfp(f)
     finally:
@@ -143,7 +152,7 @@ def cfg_to_args(path='setup.cfg'):
                     filenames = split_multiline(filenames)
                     in_cfg_value = []
                     for filename in filenames:
-                        #fp = codecs.open(filename, encoding='utf-8')
+                        # fp = codecs.open(filename, encoding='utf-8')
                         fp = io.open(filename, encoding="utf-8")
                         try:
                             in_cfg_value.append(fp.read())
@@ -162,7 +171,9 @@ def cfg_to_args(path='setup.cfg'):
             if arg == 'packages' and in_cfg_value:
                 if 'package_dir' in kwargs:
                     if kwargs['package_dir']['']:
-                        in_cfg_value = [ kwargs['package_dir']['']+'.'+pack for pack in in_cfg_value ]
+                        in_cfg_value = [
+                            kwargs['package_dir']['']+'.'+pack
+                            for pack in in_cfg_value]
             if arg == 'package_data' and in_cfg_value:
                 datafiles = {}
                 for line in in_cfg_value:
@@ -171,15 +182,17 @@ def cfg_to_args(path='setup.cfg'):
                     files = [f.split('/')[-1] for f in glob(line)]
                     datafiles[package_strcut_str] = files
                 in_cfg_value = datafiles
-                kwargs['install_package_data']=True
+                kwargs['install_package_data'] = True
 
             if arg == 'resources' and in_cfg_value:
                 datafiles = []
                 for line in in_cfg_value:
                     file_str = line.split('=')[0].strip()
-                    datafiles.extend([f.split('/')[-1] for f in glob(file_str)])
-                #kwargs['data_files'] = [('share/bilab',[line.split('=')[0].strip() for line in in_cfg_value])]
-                #kwargs['data_files'] = [('biTK/ngs',datafiles)]
+                    datafiles.extend(
+                        [f.split('/')[-1] for f in glob(file_str)])
+                # kwargs['data_files'] = [('share/bilab',
+                #    [line.split('=')[0].strip() for line in in_cfg_value])]
+                # kwargs['data_files'] = [('biTK/ngs',datafiles)]
 
         kwargs[arg] = in_cfg_value
     return kwargs
@@ -187,12 +200,14 @@ def cfg_to_args(path='setup.cfg'):
 # setup
 general_settings = cfg_to_args()
 # Key: resources has to be removed
-#general_settings.pop('resources')
-general_settings['zip-safe']=False
+# general_settings.pop('resources')
+general_settings['zip-safe'] = False
+general_settings['ext_modules'] = [hierarchy]
 # setup requires for external pacakges
 general_settings['install_requires'] = [
     'matplotlib>1.4.0',
-    'joblib>=0.9.0b4']
-#print(general_settings['install_requires'])
+    'joblib>=0.9.0b4',
+    'statsmodels>=0.6']
+# print(general_settings['install_requires'])
 setup(**general_settings)
-#setup(**cfg_to_args())
+# setup(**cfg_to_args())

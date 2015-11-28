@@ -2,6 +2,8 @@
 
 __all__ = []
 
+from biTK.ngs.utils.six import *
+
 from biTK.ngs.utils.logger import *
 
 from biTK.ngs.utils.iterspy import *

@@ -27,6 +27,7 @@ from jinja2 import Environment, FileSystemLoader
 _PY3K = PY3K = sys.version_info[0] > 2
 PY2K = not PY3K
 
+
 def is_float(n):
     return isinstance(n, float)
 
@@ -53,6 +54,4 @@ else:
     binary_type = str
 
 from biTK.ngs import *
-
-
 

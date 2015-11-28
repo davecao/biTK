@@ -11,7 +11,7 @@ from signal import signal, SIGPIPE, SIG_DFL
 from optparse import OptionParser, OptionGroup
 from collections import Counter
 from operator import add
-#from functools import wraps
+# from functools import wraps
 
 from biTK.ngs.sequence import nucleic_alphabet
 from biTK.ngs.io import AlignIO
@@ -21,15 +21,14 @@ from biTK.ngs.utils import Console, combinations_with_full, \
                             AnalysisItems, IndentedHelpFormatterWithNL, \
                             StatsAnalysisReport, profile
 from biTK import string_types
-#from multiprocessing.pool import ThreadPool as Pool
+# from multiprocessing.pool import ThreadPool as Pool
 from biTK.ngs.concurrent import ThreadPool
 from multiprocessing import cpu_count
 from itertools import chain
 
-
-
 try:
     import matplotlib
+    matplotlib.use("Agg")  # backend: disable Python rocket icon on Mac
     import matplotlib.pyplot as plt
     from matplotlib.pyplot import *
     matplotlib_version = matplotlib.__version__
@@ -50,16 +49,18 @@ signal(SIGPIPE, SIG_DFL)
 # global
 LOGGER = None
 ThPool = None
-#ACTIONS = {
-#    'stats': statistics_report, 
-#    'tbs_head': tbs_head, 
-#    'tbs_tail': tbs_tail, 
+# ACTIONS = {
+#    'stats': statistics_report,
+#    'tbs_head': tbs_head,
+#    'tbs_tail': tbs_tail,
 #    'tbl_head': tbl_head,
 #    'tbl_tail': tbl_tail,
 #    'save'    : save2fastq
-#}
+# }
 ACTIONS = ['stats', 'tbs_head', 'tbs_tail', 'tbl_head', 'tbl_tail', 'save']
-## Cache decorator
+# # Cache decorator
+
+
 class memoize:
     # from http://avinashv.net/2008/04/python-decorators-syntactic-sugar/
     def __init__(self, function):
@@ -73,26 +74,22 @@ class memoize:
             self.memoized[args] = self.function(*args)
             return self.memoized[args]
 
-def load_data(filename, minLen, 
-                sequence_nlimit = 200000,
-                io_plug = 'FastQIO_multithread',
-                fastq_type = 'single',
-                compressed=None, 
-                alphabet=nucleic_alphabet, 
-                quality_score_fmt='phred33',
-                nthreads = None,
-                chks = None,
-                verbose=False):
+
+def load_data(
+    filename, minLen, sequence_nlimit=200000,
+        io_plug='FastQIO_multithread',
+        fastq_type='single', compressed=None, alphabet=nucleic_alphabet,
+        quality_score_fmt='phred33', nthreads=None, chks=None, verbose=False):
     """
-        Read NGS data in fastq format 
+        Read NGS data in fastq format
     """
     if nthreads is None:
         nthreads = cpu_count()
     parser = AlignIO(filename, ConcreteIO=io_plug, compressed=compressed)
-    seqslist_full = parser.parse(alphabet=alphabet, 
-                                sequence_nlimit = sequence_nlimit,
+    seqslist_full = parser.parse(alphabet=alphabet,
+                                 sequence_nlimit=sequence_nlimit,
                                  quality_score_fmt=quality_score_fmt,
-                                 nthreads=nthreads, chunksize=chks, 
+                                 nthreads=nthreads, chunksize=chks,
                                  verbose=verbose)
     seqslist = []
     removed_list = []
@@ -105,10 +102,10 @@ def load_data(filename, minLen,
             length = seq.length()
             max_length = max(length, max_length)
             if length >= minLen:
-                #seqslist.append(seq)
+                # seqslist.append(seq)
                 s_ap(seq)
             else:
-                #removed_list.append(seq)
+                # removed_list.append(seq)
                 rl_ap(seq)
     else:
         for seq in seqslist_full:
@@ -116,6 +113,7 @@ def load_data(filename, minLen,
             max_length = max(length, max_length)
         seqslist = seqslist_full
     return seqslist, removed_list, max_length
+
 
 def gc_content_all(contents, alphabet=nucleic_alphabet, pth="."):
     """
