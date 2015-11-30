@@ -3,7 +3,7 @@
 # @Author: davecao
 # @Date:   2015-11-25 15:38:25
 # @Last Modified by:   davecao
-# @Last Modified time: 2015-11-26 23:59:30
+# @Last Modified time: 2015-11-30 12:24:24
 
 import sys
 
@@ -71,8 +71,8 @@ def simulateReadCount(Ngenes=10000, groups=3, Ntrials=2, PDEG=0.20,
                 (see numpy.random.negative_binomial)
     Return:
         count matrix with Ngenes x (groups*Ntrials)
-        # ----- | ------- trial1 -------   | --------  trial2 ------- |
-        # Gene  | group1 | group2 | group3 | group1 | group2 | group3 |
+        # ----- | ------- time 1 -------   | --------  time 2 ------- |
+        # Gene  |  exp1  |  exp2  |   exp3 |   exp1 |   exp2 |  exp3  |
         # ------------------------------------------------------------|
         # Gene1 |   279  |  100   |   10   |   198  |  90    |  20    |
 
