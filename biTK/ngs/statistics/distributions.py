@@ -3,10 +3,11 @@
 # @Author: davecao
 # @Date:   2015-11-25 15:38:25
 # @Last Modified by:   davecao
-# @Last Modified time: 2015-11-30 12:24:24
+# @Last Modified time: 2015-12-02 01:52:39
 
+import os
 import sys
-
+import biTK
 try:
     import numpy as np
 except ImportError:
@@ -16,6 +17,30 @@ else:
         raise ImportError('Numpy v1.8 or later is required.')
 
 __all__ = ['simulateReadCount']
+
+arab_file = biTK.DATA + os.sep + "arab.txt"
+
+
+def getExperimentData(filename,
+                      skip_header=1,
+                      usecols=(1, 2, 3, 4, 5, 6), **kwargs):
+    """ Load arab.txt """
+    # colname = ["gene_id", "mock1", "mock2", "mock3",
+    #           "hrcc1", "hrcc2", "hrcc3"]
+    replicates = kwargs.get('replicates', 3)
+    delimiter = kwargs.get('delimiter', ' ')
+    data = np.genfromtxt(filename, skip_header=1,
+                         delimiter=delimiter, usecols=usecols)
+    # split into groups
+    nrows, ncols = data.shape
+    # split by replicates, keep rows
+    dim = ncols/replicates
+    data = np.hsplit(data, dim)
+    data = np.asarray(data)
+    # mean of element-wise sum of subarrays
+    m = np.sum(data, axis=0)/dim
+
+    return (mean)
 
 
 def simulateReadCount(Ngenes=10000, groups=3, Ntrials=2, PDEG=0.20,

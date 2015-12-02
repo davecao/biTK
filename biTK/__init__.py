@@ -35,6 +35,7 @@ TPLPATH = "{}/ngs/templates/".format(os.path.dirname(__file__))
 jinja2_ENV = Environment(loader=FileSystemLoader(TPLPATH))
 jinja2_ENV.add_extension('jinja2.ext.loopcontrols')
 jinja2_ENV.tests['Float'] = is_float
+DATA = "{}/ngs/data/".format(os.path.dirname(__file__))
 
 __all__ = []
 
