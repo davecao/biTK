@@ -5,6 +5,7 @@ __contact__ = "davecao@bi.a.u-tokyo.ac.jp"
 __date__ = "2015/09/11"
 __version__ = '1.0.0'
 
+import os
 import os.path
 import sys
 import warnings
@@ -35,7 +36,7 @@ TPLPATH = "{}/ngs/templates/".format(os.path.dirname(__file__))
 jinja2_ENV = Environment(loader=FileSystemLoader(TPLPATH))
 jinja2_ENV.add_extension('jinja2.ext.loopcontrols')
 jinja2_ENV.tests['Float'] = is_float
-DATA = "{}/ngs/data/".format(os.path.dirname(__file__))
+DATA = "{}/ngs/data".format(os.path.dirname(__file__))
 
 __all__ = []
 

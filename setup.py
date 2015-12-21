@@ -56,6 +56,13 @@ hierarchy = Extension(
         'biTK/ngs/cluster/_hierarchy.pyx'
         ])
 
+gibbs_sampler = Extension(
+    "biTK.ngs.statistics.sampling._gibbs_sampler",
+    include_dirs=[np_include_dir],
+    sources=[
+        'biTK/ngs/statistics/sampling/_gibbs_sampler.pyx'
+        ])
+
 
 def split_multiline(value):
     """Split a multiline string into a list, excluding blank lines."""
@@ -202,7 +209,7 @@ general_settings = cfg_to_args()
 # Key: resources has to be removed
 # general_settings.pop('resources')
 general_settings['zip-safe'] = False
-general_settings['ext_modules'] = [hierarchy]
+general_settings['ext_modules'] = [hierarchy, gibbs_sampler]
 # setup requires for external pacakges
 general_settings['install_requires'] = [
     'matplotlib>1.4.0',
