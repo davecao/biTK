@@ -3,7 +3,7 @@
 # @Author: davecao
 # @Date:   2015-11-25 15:38:25
 # @Last Modified by:   davecao
-# @Last Modified time: 2015-12-21 15:42:55
+# @Last Modified time: 2015-12-21 17:23:47
 
 import os
 import sys
@@ -189,10 +189,11 @@ def negative_binomial(mu, r, size=None):
             s[:] = [poisson_gamma_mixture(r_val, scale=m_val/r_val)
                     for m_val, r_val in params_pair]
         elif s.ndim == 2:
-            s[:, :] = [[
+            s[:, :] = [
                 poisson_gamma_mixture(
                     r_val, scale=m_val/r_val, size=s.shape[1])
-                for m_val, r_val in params_pair] for i in range(s.shape[0])]
+                for m_val, r_val in params_pair]
+
         else:
             print("Only 2d array supported at present. Now return a zeros")
         return s
@@ -306,15 +307,16 @@ def simulateReadCount(Ngenes=10000, groups=3, Ntrials=3, PDEG=0.20,
     #
     m_data = negative_binomial(mu, r, size=(Ngenes, groups*Ntrials))
     m_boundary = int(np.ceil(Ngenes * PDEG))
-
-    for trial in range(2, Ntrials+1):  # shift from zero to one
-        count_data = np.random.negative_binomial(
-                        1,
-                        nb_success_rate,
-                        (Ngenes, groups))
-        # Set expression degree
-        count_data[0:m_boundary, :] *= degrees
-        # Combine data
-        m_data = np.hstack((m_data, count_data))
+    # set expression level
+    degs = np.ones((Ngenes, groups*Ntrials))
+    #for trial in range(2, Ntrials+1):  # shift from zero to one
+    #    count_data = np.random.negative_binomial(
+    #                    1,
+    #                    nb_success_rate,
+    #                    (Ngenes, groups))
+    #    # Set expression degree
+    #    count_data[0:m_boundary, :] *= degrees
+    #    # Combine data
+    #    m_data = np.hstack((m_data, count_data))
 
     return m_data
